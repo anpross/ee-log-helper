@@ -197,8 +197,6 @@ public class StatementHelper {
 		return (VariableDeclarationFragment) firstFragment;
 	}
 
-//	QualifiedName qNameLogger = getQName(EeLogConstants.PACKAGE_NAME_LOGGER, EeLogConstants.CLASS_NAME_LOGGER, ast);
-
 	public static QualifiedName getQName(String packageName, String className, AST ast) {
 		return ast.newQualifiedName(ast.newName(packageName), ast.newSimpleName(className));
 	}

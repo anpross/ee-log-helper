@@ -142,7 +142,7 @@ public class EeLogHandler extends AbstractHandler {
 		declarationFragment.setName(ast.newSimpleName(variableName));
 		declarationFragment.setInitializer(initializerExpression);
 		FieldDeclaration fieldDeclaration = ast.newFieldDeclaration(declarationFragment);
-		fieldDeclaration.setType(ast.newSimpleType(qualifiedClassName));
+		fieldDeclaration.setType(ast.newSimpleType(ast.newName(qualifiedClassName.getName().getIdentifier())));
 		listRewrite.insertFirst(fieldDeclaration, null);
 	}
 
