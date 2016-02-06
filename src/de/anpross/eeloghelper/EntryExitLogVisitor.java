@@ -10,12 +10,13 @@ import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
+import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 
 import de.anpross.eeloghelper.enums.MethodStateEnum;
 
 /**
  * records all methods and class variables.
- * 
+ *
  * @author andreas
  */
 public class EntryExitLogVisitor extends ASTVisitor {
@@ -23,7 +24,7 @@ public class EntryExitLogVisitor extends ASTVisitor {
 	MethodDeclaration currMethod;
 	Statement firstStatement;
 	Block currMethodBlock;
-	
+
 	List<FieldDeclaration> classFields = new ArrayList<FieldDeclaration>();
 	List<MethodDto> methods = new ArrayList<MethodDto>();
 
@@ -50,7 +51,6 @@ public class EntryExitLogVisitor extends ASTVisitor {
 
 	@Override
 	public boolean visit(MethodDeclaration node) {
-		System.out.println("MethodDeclaration:"+node);
 		currMethod = node;
 		return super.visit(node);
 	}
@@ -76,11 +76,16 @@ public class EntryExitLogVisitor extends ASTVisitor {
 
 	private MethodStateEnum evaluateMethodState() {
 		if (firstStatement != null && StatementHelper.isStatementLoggingStatement(firstStatement)) {
-			return MethodStateEnum.CORRECT;
+			String correctSignature = generateSignatureString(currMethod);
+			VariableDeclarationStatement variableDeclarationStmt = (VariableDeclarationStatement)firstStatement;
+			if(StatementHelper.isLoggingStatementSignatureCorrect(variableDeclarationStmt, correctSignature)) {
+				return MethodStateEnum.CORRECT;
+			} else {
+				return MethodStateEnum.WRONG_SIGNATURE;
+			}
 		} else {
 			return MethodStateEnum.MISSING;
 		}
-		// TODO: validate fully, not only first statement
 	}
 
 	private String generateSignatureString(MethodDeclaration currMethod) {
@@ -89,7 +94,7 @@ public class EntryExitLogVisitor extends ASTVisitor {
 		StringBuilder signature = new StringBuilder();
 		signature.append(currMethod.getName().getIdentifier());
 		signature.append('(');
-		
+
 		for (Object object : parameters) {
 			if(object instanceof SingleVariableDeclaration) {
 				SingleVariableDeclaration currParameter = (SingleVariableDeclaration) object;
@@ -115,7 +120,7 @@ public class EntryExitLogVisitor extends ASTVisitor {
 	public List<MethodDto> getMethods() {
 		return methods;
 	}
-	
+
 	public List<FieldDeclaration> getClassVariables() {
 		return classFields;
 	}

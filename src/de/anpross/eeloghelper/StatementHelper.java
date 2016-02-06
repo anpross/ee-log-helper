@@ -9,11 +9,13 @@ import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
+import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.IExtendedModifier;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.PrimitiveType;
+import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.StringLiteral;
 import org.eclipse.jdt.core.dom.Type;
@@ -103,14 +105,14 @@ public class StatementHelper {
 	/**
 	 * checks if the statement is a: <br/>
 	 * "final String LOG_METHOD"
-	 * 
-	 * @param statement
+	 *
+	 * @param stmt
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	public static boolean isStatementLoggingStatement(Statement statement) {
-		if (statement.getNodeType() == ASTNode.VARIABLE_DECLARATION_STATEMENT) {
-			VariableDeclarationStatement varDeclStatement = (VariableDeclarationStatement) statement;
+	public static boolean isStatementLoggingStatement(Statement stmt) {
+		if (stmt.getNodeType() == ASTNode.VARIABLE_DECLARATION_STATEMENT) {
+			VariableDeclarationStatement varDeclStatement = (VariableDeclarationStatement) stmt;
 			Type type = varDeclStatement.getType();
 			if (type.resolveBinding().getQualifiedName().equals("java.lang.String")
 					&& StatementHelper.hasFinalModifier(varDeclStatement.modifiers())
@@ -120,18 +122,25 @@ public class StatementHelper {
 		}
 		return false;
 	}
-	
-	private static String getVariableName(VariableDeclarationStatement varDeclStatement) {
-		if (varDeclStatement.fragments().size() == 1) {
-			for (Object currFragment : varDeclStatement.fragments()) {
-				if (currFragment instanceof VariableDeclarationFragment) {
-					return ((VariableDeclarationFragment) currFragment).getName().getIdentifier();
-				} else {
-					throw new IllegalArgumentException("fragment has wrong type");
-				}
-			}
+
+	public static boolean isLoggingStatementSignatureCorrect(VariableDeclarationStatement stmt,
+			String correctSignature) {
+		return correctSignature.equals(getVariableDelcarationStringValue(stmt));
+	}
+
+	private static String getVariableDelcarationStringValue(VariableDeclarationStatement stmt) {
+		VariableDeclarationFragment firstFragment = (VariableDeclarationFragment) stmt.fragments().get(0);
+		Expression initializer = firstFragment.getInitializer();
+		if (initializer instanceof StringLiteral) {
+			StringLiteral stringLiteral = (StringLiteral) initializer;
+			return stringLiteral.getLiteralValue();
 		}
 		return null;
+	}
+
+	private static String getVariableName(VariableDeclarationStatement varDeclStatement) {
+		VariableDeclarationFragment firstStatement = StatementHelper.getFirstStatement(varDeclStatement);
+		return firstStatement.getName().getIdentifier();
 	}
 
 	private static boolean hasFinalModifier(List<IExtendedModifier> modifiers) {
@@ -147,12 +156,13 @@ public class StatementHelper {
 
 	public static MethodInvocation createLoggerStatement(AST ast) {
 		MethodInvocation invocation = ast.newMethodInvocation();
-		invocation.setExpression(ast.newQualifiedName(ast.newName(PACKAGE_NAME_LOGGER), ast.newSimpleName(CLASS_NAME_LOGGER)));
+		invocation.setExpression(
+				ast.newQualifiedName(ast.newName(PACKAGE_NAME_LOGGER), ast.newSimpleName(CLASS_NAME_LOGGER)));
 		invocation.setName(ast.newSimpleName("getLogger"));
 		invocation.arguments().add(ast.newSimpleName(CONST_NAME_LOG_CLASS));
 		return invocation;
 	}
-	
+
 	public static StringLiteral createClassNameStringLiteral(AbstractTypeDeclaration currClass, AST ast) {
 		StringLiteral stringLiteral = ast.newStringLiteral();
 		stringLiteral.setLiteralValue(currClass.getName().getIdentifier());
@@ -162,4 +172,35 @@ public class StatementHelper {
 	public static Expression createLogLevelStatement(Level finer, AST ast) {
 		return ast.newQualifiedName(ast.newName("Level"), ast.newSimpleName(finer.getName()));
 	}
+
+	public static VariableDeclarationStatement getFirstVariableDeclarationStatementOfBlock(Block block) {
+		for (Object currStatementObj : block.statements()) {
+			if (currStatementObj instanceof VariableDeclarationStatement) {
+				VariableDeclarationStatement firstVariableDeclarationStmt = (VariableDeclarationStatement) currStatementObj;
+				return firstVariableDeclarationStmt;
+			}
+		}
+		return null;
+	}
+
+	public static VariableDeclarationFragment getFirstStatement(VariableDeclarationStatement stmt) {
+		List<?> fragments = stmt.fragments();
+		Object firstFragment = fragments.get(0);
+		assert(firstFragment instanceof VariableDeclarationFragment);
+		return (VariableDeclarationFragment) firstFragment;
+	}
+
+	public static VariableDeclarationFragment getFirstStatement(FieldDeclaration stmt) {
+		List<?> fragments = stmt.fragments();
+		Object firstFragment = fragments.get(0);
+		assert(firstFragment instanceof VariableDeclarationFragment);
+		return (VariableDeclarationFragment) firstFragment;
+	}
+
+//	QualifiedName qNameLogger = getQName(EeLogConstants.PACKAGE_NAME_LOGGER, EeLogConstants.CLASS_NAME_LOGGER, ast);
+
+	public static QualifiedName getQName(String packageName, String className, AST ast) {
+		return ast.newQualifiedName(ast.newName(packageName), ast.newSimpleName(className));
+	}
+
 }

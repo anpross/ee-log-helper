@@ -24,6 +24,7 @@ import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.ImportDeclaration;
+import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
@@ -67,7 +68,6 @@ public class EeLogHandler extends AbstractHandler {
 			if (mypackage.getKind() == IPackageFragmentRoot.K_SOURCE) {
 				createAST(mypackage);
 			}
-
 		}
 	}
 
@@ -76,7 +76,7 @@ public class EeLogHandler extends AbstractHandler {
 		for (ICompilationUnit unit : mypackage.getCompilationUnits()) {
 			// now create the AST for the ICompilationUnits
 			CompilationUnit parsedCompilationUnit = parse(unit);
-			List<AbstractTypeDeclaration> classes = (List<AbstractTypeDeclaration>) parsedCompilationUnit.types();
+			List<AbstractTypeDeclaration> classes = parsedCompilationUnit.types();
 			ASTRewrite rewrite = ASTRewrite.create(parsedCompilationUnit.getAST());
 			addLoggerImportToCompUnit(parsedCompilationUnit, parsedCompilationUnit.getAST(), rewrite);
 			for (AbstractTypeDeclaration currClass : classes) {
@@ -106,38 +106,33 @@ public class EeLogHandler extends AbstractHandler {
 			List<FieldDeclaration> classVariables) {
 		AST ast = currClass.getAST();
 
-		addClassVariableIfMissingAsFirst("Logger", "LOGGER", classVariables,
-				StatementHelper.createLoggerStatement(ast), ast, rewrite, currClass);
-		addClassVariableIfMissingAsFirst("String", "LOG_CLASS", classVariables,
+		addClassVariableAsFirstIfMissing(EeLogConstants.getQNameLogger(ast), EeLogConstants.VARIABLE_NAME_LOGGER,
+				classVariables, StatementHelper.createLoggerStatement(ast), ast, rewrite, currClass);
+		addClassVariableAsFirstIfMissing(EeLogConstants.getQNameString(ast), "LOG_CLASS", classVariables,
 				StatementHelper.createClassNameStringLiteral(currClass, ast), ast, rewrite, currClass);
-		addClassVariableIfMissingAsFirst("Level", "DEFAULT_LEVEL", classVariables,
+		addClassVariableAsFirstIfMissing(EeLogConstants.getQNameLevel(ast), "DEFAULT_LEVEL", classVariables,
 				StatementHelper.createLogLevelStatement(Level.FINER, ast), ast, rewrite, currClass);
 
 		writeMethodsToRewriter(methods, rewrite, ast);
 	}
 
-	private void addClassVariableIfMissingAsFirst(String qualifiedClassName, String variableName,
+	private void addClassVariableAsFirstIfMissing(QualifiedName qualifiedClassName, String variableName,
 			List<FieldDeclaration> classVariables, Expression value, AST ast, ASTRewrite rewriter,
 			AbstractTypeDeclaration currClass) {
 		for (FieldDeclaration currVar : classVariables) {
-			List fragments = currVar.fragments();
-			if (fragments.size() == 1) {
-				Object firstFragment = fragments.get(0);
-				if (firstFragment instanceof VariableDeclarationFragment) {
-					VariableDeclarationFragment fragment = (VariableDeclarationFragment) firstFragment;
-					if (fragment.getName().getIdentifier().equals(variableName)
-							&& currVar.getType().resolveBinding().getQualifiedName().equals(qualifiedClassName)) {
-						// TODO: remove existing entry so we can re-add it in
-						// case it changed
-						return;
-					}
+			Object firstFragment = StatementHelper.getFirstStatement(currVar);
+			if (firstFragment instanceof VariableDeclarationFragment) {
+				VariableDeclarationFragment fragment = (VariableDeclarationFragment) firstFragment;
+				if (fragment.getName().getIdentifier().equals(variableName) && currVar.getType().resolveBinding()
+						.getQualifiedName().equals(qualifiedClassName.getFullyQualifiedName())) {
+					return;
 				}
 			}
 		}
 		writeClassFieldsToRewriter(qualifiedClassName, variableName, value, ast, rewriter, currClass);
 	}
 
-	private void writeClassFieldsToRewriter(String qualifiedClassName, String variableName,
+	private void writeClassFieldsToRewriter(QualifiedName qualifiedClassName, String variableName,
 			Expression initializerExpression, AST ast, ASTRewrite rewriter, AbstractTypeDeclaration currClass) {
 		System.out.println(
 				"need to add a " + qualifiedClassName + " called " + variableName + " of " + initializerExpression);
@@ -147,40 +142,65 @@ public class EeLogHandler extends AbstractHandler {
 		declarationFragment.setName(ast.newSimpleName(variableName));
 		declarationFragment.setInitializer(initializerExpression);
 		FieldDeclaration fieldDeclaration = ast.newFieldDeclaration(declarationFragment);
-		fieldDeclaration.setType(ast.newSimpleType(ast.newName(qualifiedClassName)));
+		fieldDeclaration.setType(ast.newSimpleType(qualifiedClassName));
 		listRewrite.insertFirst(fieldDeclaration, null);
 	}
 
 	private void writeMethodsToRewriter(List<MethodDto> methods, ASTRewrite rewrite, AST ast) {
 		for (MethodDto currMethod : methods) {
+			Block methodBlock = currMethod.getMethodBlock();
+			ListRewrite listRewrite = rewrite.getListRewrite(methodBlock, Block.STATEMENTS_PROPERTY);
+
 			if (currMethod.getMethodState() == MethodStateEnum.MISSING) {
 				VariableDeclarationStatement methodNameStmt = StatementHelper.createMethodNameStatement(currMethod,
 						ast);
 				VariableDeclarationStatement isLoggingStmt = StatementHelper.createIsLoggingStatement(ast);
 				IfStatement entryStmt = StatementHelper.getEntryLoggingStatement(ast);
 				IfStatement exitStmt = StatementHelper.getExitingLoggingStatement(ast);
-				ListRewrite listRewrite = rewrite.getListRewrite(currMethod.getMethodBlock(),
-						Block.STATEMENTS_PROPERTY);
 
 				listRewrite.insertFirst(entryStmt, null);
 				listRewrite.insertFirst(isLoggingStmt, null);
 				listRewrite.insertFirst(methodNameStmt, null);
 				listRewrite.insertLast(exitStmt, null);
+			} else if (currMethod.getMethodState() == MethodStateEnum.WRONG_SIGNATURE) {
+				VariableDeclarationStatement firstStatement = StatementHelper
+						.getFirstVariableDeclarationStatementOfBlock(methodBlock);
+				VariableDeclarationStatement replacementStatement = StatementHelper
+						.createMethodNameStatement(currMethod, ast);
+				listRewrite.replace(firstStatement, replacementStatement, null);
 			}
 		}
 	}
 
 	@SuppressWarnings("unchecked")
 	private void addLoggerImportToCompUnit(CompilationUnit parsedCompilationUnit, AST ast, ASTRewrite rewriter) {
-		String[] importClasses = { "java.util.logging.Logger", "java.util.logging.Level" };
+		QualifiedName[] importClasses = { EeLogConstants.getQNameLogger(ast), EeLogConstants.getQNameLevel(ast) };
 
 		ListRewrite listRewrite = rewriter.getListRewrite(parsedCompilationUnit, CompilationUnit.IMPORTS_PROPERTY);
-		for (String importClass : importClasses) {
-			ImportDeclaration loggerImport = ast.newImportDeclaration();
-			loggerImport.setName(ast.newName(importClass));
-			parsedCompilationUnit.imports().add(loggerImport);
-			listRewrite.insertFirst(loggerImport, null);
+		List originalList = listRewrite.getOriginalList();
+
+		for (QualifiedName importClass : importClasses) {
+			if (!hasImportAlready(importClass, originalList)) {
+				ImportDeclaration loggerImport = ast.newImportDeclaration();
+				loggerImport.setName(importClass);
+				parsedCompilationUnit.imports().add(loggerImport);
+				listRewrite.insertFirst(loggerImport, null);
+			}
+			;
 		}
+	}
+
+	private boolean hasImportAlready(QualifiedName importClass, List originalList) {
+		for (Object object : originalList) {
+			if (object instanceof ImportDeclaration) {
+				ImportDeclaration currImportDeclaration = (ImportDeclaration) object;
+				if (currImportDeclaration.getName().getFullyQualifiedName()
+						.equals(importClass.getFullyQualifiedName())) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	private static CompilationUnit parse(ICompilationUnit unit) {
@@ -188,6 +208,6 @@ public class EeLogHandler extends AbstractHandler {
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
 		parser.setSource(unit);
 		parser.setResolveBindings(true);
-		return (CompilationUnit) parser.createAST(null); // parse
+		return (CompilationUnit) parser.createAST(null);
 	}
 }
