@@ -14,6 +14,7 @@ public class MethodDto {
 	MethodStateEnum methodState;
 	MethodAnnotationEnum methodAnnontation;
 	private int methodLineNumber;
+	private int bodyLineNumber;
 
 	public String getSignatureString() {
 		return signatureString;
@@ -61,5 +62,13 @@ public class MethodDto {
 
 	public void setMethodLineNumber(int methodLineNumer) {
 		this.methodLineNumber = methodLineNumer;
+	}
+
+	public int getBodyLineNumber() {
+		return bodyLineNumber;
+	}
+
+	public void setBodyLineNumber(int bodyLineNumber) {
+		this.bodyLineNumber = bodyLineNumber;
 	}
 }

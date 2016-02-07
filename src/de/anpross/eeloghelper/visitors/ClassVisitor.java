@@ -28,6 +28,7 @@ public class ClassVisitor extends ASTVisitor {
 	Statement firstStatement;
 	Block currMethodBlock;
 	int currMethodLineNumber;
+	int currBodyLineNumber;
 	CompilationUnit compilationUnit;
 	String[] source;
 
@@ -63,6 +64,7 @@ public class ClassVisitor extends ASTVisitor {
 	public boolean visit(MethodDeclaration node) {
 		currMethod = node;
 		currMethodLineNumber = compilationUnit.getLineNumber(node.getStartPosition());
+		currBodyLineNumber = compilationUnit.getLineNumber(node.getBody().getStartPosition());
 		return super.visit(node);
 	}
 
@@ -82,6 +84,7 @@ public class ClassVisitor extends ASTVisitor {
 		newMethod.setSignatureString(generateSignatureString(currMethod));
 		newMethod.setMethodState(evaluateMethodState());
 		newMethod.setMethodLineNumber(currMethodLineNumber);
+		newMethod.setBodyLineNumber(currBodyLineNumber);
 		methods.add(newMethod);
 	}
 

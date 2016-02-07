@@ -125,7 +125,16 @@ public class EeLogHandler extends AbstractHandler {
 	private void corelateMethodsWithComments(List<MethodDto> methods, List<LineCommentDto> comments) {
 		for (MethodDto currMethod : methods) {
 			for (LineCommentDto currComment : comments) {
-				if(currMethod.getMethodLineNumber() - 1 == currComment.getLineNumber()) {
+
+				// method includes its javadoc, -1 because we are looking for the line above
+				int lineRangeStart = currMethod.getMethodLineNumber() -1;
+
+				// body is the last line of the method header (containing the <pre>{</pre> block start)
+				int lineRangeEnd = currMethod.getBodyLineNumber() -1;
+
+				int commentLine = currComment.getLineNumber();
+
+				if( commentLine>= lineRangeStart && commentLine <= lineRangeEnd) {
 					currMethod.setAnnontation(getMethodAnnontationFromComment(currComment.getComment()));
 				}
 			}
