@@ -24,6 +24,7 @@ import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.ImportDeclaration;
+import org.eclipse.jdt.core.dom.LineComment;
 import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
@@ -35,8 +36,14 @@ import org.eclipse.jface.text.Document;
 import org.eclipse.text.edits.MalformedTreeException;
 import org.eclipse.text.edits.TextEdit;
 
+import de.anpross.eeloghelper.dtos.LineCommentDto;
+import de.anpross.eeloghelper.dtos.MethodDto;
+import de.anpross.eeloghelper.enums.MethodAnnotationEnum;
 import de.anpross.eeloghelper.enums.MethodStateEnum;
+import de.anpross.eeloghelper.visitors.ClassVisitor;
+import de.anpross.eeloghelper.visitors.LineCommentVisitor;
 
+@SuppressWarnings("unchecked")
 public class EeLogHandler extends AbstractHandler {
 
 	private static final String JDT_NATURE = "org.eclipse.jdt.core.javanature";
@@ -74,13 +81,13 @@ public class EeLogHandler extends AbstractHandler {
 	private void createAST(IPackageFragment mypackage)
 			throws JavaModelException, MalformedTreeException, BadLocationException {
 		for (ICompilationUnit unit : mypackage.getCompilationUnits()) {
-			// now create the AST for the ICompilationUnits
+			String[] compilationUnitSource = unit.getSource().split("\n");
 			CompilationUnit parsedCompilationUnit = parse(unit);
 			List<AbstractTypeDeclaration> classes = parsedCompilationUnit.types();
 			ASTRewrite rewrite = ASTRewrite.create(parsedCompilationUnit.getAST());
 			addLoggerImportToCompUnit(parsedCompilationUnit, parsedCompilationUnit.getAST(), rewrite);
 			for (AbstractTypeDeclaration currClass : classes) {
-				processClass(rewrite, currClass);
+				processClass(rewrite, currClass, parsedCompilationUnit, compilationUnitSource);
 			}
 			TextEdit edits = rewrite.rewriteAST();
 			Document document = new Document(unit.getSource());
@@ -90,15 +97,38 @@ public class EeLogHandler extends AbstractHandler {
 		}
 	}
 
-	private void processClass(ASTRewrite rewrite, AbstractTypeDeclaration currClass) {
-		EntryExitLogVisitor visitor = new EntryExitLogVisitor();
-		currClass.accept(visitor);
+	private void processClass(ASTRewrite rewrite, AbstractTypeDeclaration currClass,
+			CompilationUnit parsedCompilationUnit, String[] compilationUnitSource) {
+		ClassVisitor classVisitor = new ClassVisitor(parsedCompilationUnit);
+		currClass.accept(classVisitor);
 
-		List<MethodDto> methods = visitor.getMethods();
-		List<FieldDeclaration> classVariables = visitor.getClassVariables();
+		List<?> commentList = parsedCompilationUnit.getCommentList();
+		// Comments need special care so they get sorta-picked up by the Vistor
+		LineCommentVisitor lineCommentVisitor = new LineCommentVisitor(parsedCompilationUnit, compilationUnitSource);
+		for (Object object : commentList) {
+			if (object instanceof LineComment) {
+				LineComment currLine = (LineComment) object;
+				currLine.accept(lineCommentVisitor);
+			}
+		}
+
+		List<MethodDto> methods = classVisitor.getMethods();
+		List<FieldDeclaration> classVariables = classVisitor.getClassVariables();
+		List<LineCommentDto> comments = lineCommentVisitor.getComments();
+		corelateMethodsWithComments(methods, comments);
 
 		if (!methods.isEmpty()) {
 			writeClassToRewriter(rewrite, currClass, methods, classVariables);
+		}
+	}
+
+	private void corelateMethodsWithComments(List<MethodDto> methods, List<LineCommentDto> comments) {
+		for (MethodDto currMethod : methods) {
+			for (LineCommentDto currComment : comments) {
+				if(currMethod.getMethodLineNumber() - 1 == currComment.getLineNumber()) {
+					currMethod.setAnnontation(getMethodAnnontationFromComment(currComment.getComment()));
+				}
+			}
 		}
 	}
 
@@ -108,10 +138,10 @@ public class EeLogHandler extends AbstractHandler {
 
 		addClassVariableAsFirstIfMissing(EeLogConstants.getQNameLogger(ast), EeLogConstants.VARIABLE_NAME_LOGGER,
 				classVariables, StatementHelper.createLoggerStatement(ast), ast, rewrite, currClass);
-		addClassVariableAsFirstIfMissing(EeLogConstants.getQNameString(ast), "LOG_CLASS", classVariables,
-				StatementHelper.createClassNameStringLiteral(currClass, ast), ast, rewrite, currClass);
-		addClassVariableAsFirstIfMissing(EeLogConstants.getQNameLevel(ast), "DEFAULT_LEVEL", classVariables,
-				StatementHelper.createLogLevelStatement(Level.FINER, ast), ast, rewrite, currClass);
+		addClassVariableAsFirstIfMissing(EeLogConstants.getQNameString(ast), EeLogConstants.CONST_NAME_LOG_CLASS,
+				classVariables, StatementHelper.createClassNameStringLiteral(currClass, ast), ast, rewrite, currClass);
+		addClassVariableAsFirstIfMissing(EeLogConstants.getQNameLevel(ast), EeLogConstants.CONST_NAME_DEFAULT_LEVEL,
+				classVariables, StatementHelper.createLogLevelStatement(Level.FINER, ast), ast, rewrite, currClass);
 
 		writeMethodsToRewriter(methods, rewrite, ast);
 	}
@@ -151,7 +181,8 @@ public class EeLogHandler extends AbstractHandler {
 			Block methodBlock = currMethod.getMethodBlock();
 			ListRewrite listRewrite = rewrite.getListRewrite(methodBlock, Block.STATEMENTS_PROPERTY);
 
-			if (currMethod.getMethodState() == MethodStateEnum.MISSING) {
+			if (currMethod.getMethodState() == MethodStateEnum.MISSING
+					&& currMethod.getAnnontation() != MethodAnnotationEnum.OFF) {
 				VariableDeclarationStatement methodNameStmt = StatementHelper.createMethodNameStatement(currMethod,
 						ast);
 				VariableDeclarationStatement isLoggingStmt = StatementHelper.createIsLoggingStatement(ast);
@@ -172,12 +203,11 @@ public class EeLogHandler extends AbstractHandler {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	private void addLoggerImportToCompUnit(CompilationUnit parsedCompilationUnit, AST ast, ASTRewrite rewriter) {
 		QualifiedName[] importClasses = { EeLogConstants.getQNameLogger(ast), EeLogConstants.getQNameLevel(ast) };
 
 		ListRewrite listRewrite = rewriter.getListRewrite(parsedCompilationUnit, CompilationUnit.IMPORTS_PROPERTY);
-		List originalList = listRewrite.getOriginalList();
+		List<?> originalList = listRewrite.getOriginalList();
 
 		for (QualifiedName importClass : importClasses) {
 			if (!hasImportAlready(importClass, originalList)) {
@@ -186,11 +216,10 @@ public class EeLogHandler extends AbstractHandler {
 				parsedCompilationUnit.imports().add(loggerImport);
 				listRewrite.insertFirst(loggerImport, null);
 			}
-			;
 		}
 	}
 
-	private boolean hasImportAlready(QualifiedName importClass, List originalList) {
+	private boolean hasImportAlready(QualifiedName importClass, List<?> originalList) {
 		for (Object object : originalList) {
 			if (object instanceof ImportDeclaration) {
 				ImportDeclaration currImportDeclaration = (ImportDeclaration) object;
@@ -204,10 +233,22 @@ public class EeLogHandler extends AbstractHandler {
 	}
 
 	private static CompilationUnit parse(ICompilationUnit unit) {
-		ASTParser parser = ASTParser.newParser(AST.JLS3);
+		ASTParser parser = ASTParser.newParser(AST.JLS8);
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
 		parser.setSource(unit);
 		parser.setResolveBindings(true);
 		return (CompilationUnit) parser.createAST(null);
 	}
+
+	private MethodAnnotationEnum getMethodAnnontationFromComment(String comment) {
+		if (comment != null) {
+			for(MethodAnnotationEnum currEnum : MethodAnnotationEnum.values()) {
+				if(comment.equals(currEnum.getVerb())) {
+					return currEnum;
+				}
+			}
+		}
+		return MethodAnnotationEnum.NONE;
+	}
+
 }

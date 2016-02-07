@@ -1,4 +1,4 @@
-package de.anpross.eeloghelper;
+package de.anpross.eeloghelper.visitors;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,12 +6,15 @@ import java.util.List;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.Block;
+import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 
+import de.anpross.eeloghelper.StatementHelper;
+import de.anpross.eeloghelper.dtos.MethodDto;
 import de.anpross.eeloghelper.enums.MethodStateEnum;
 
 /**
@@ -19,18 +22,25 @@ import de.anpross.eeloghelper.enums.MethodStateEnum;
  *
  * @author andreas
  */
-public class EntryExitLogVisitor extends ASTVisitor {
+public class ClassVisitor extends ASTVisitor {
 
 	MethodDeclaration currMethod;
 	Statement firstStatement;
 	Block currMethodBlock;
+	int currMethodLineNumber;
+	CompilationUnit compilationUnit;
+	String[] source;
 
 	List<FieldDeclaration> classFields = new ArrayList<FieldDeclaration>();
 	List<MethodDto> methods = new ArrayList<MethodDto>();
 
+	public ClassVisitor(CompilationUnit compilationUnit) {
+		this.compilationUnit = compilationUnit;
+	}
+
 	@Override
 	public boolean visit(FieldDeclaration node) {
-		if(currMethod == null) {
+		if (currMethod == null) {
 			classFields.add(node);
 		}
 		return super.visit(node);
@@ -52,6 +62,7 @@ public class EntryExitLogVisitor extends ASTVisitor {
 	@Override
 	public boolean visit(MethodDeclaration node) {
 		currMethod = node;
+		currMethodLineNumber = compilationUnit.getLineNumber(node.getStartPosition());
 		return super.visit(node);
 	}
 
@@ -70,15 +81,15 @@ public class EntryExitLogVisitor extends ASTVisitor {
 		newMethod.setMethodDeclaration(currMethod);
 		newMethod.setSignatureString(generateSignatureString(currMethod));
 		newMethod.setMethodState(evaluateMethodState());
-
+		newMethod.setMethodLineNumber(currMethodLineNumber);
 		methods.add(newMethod);
 	}
 
 	private MethodStateEnum evaluateMethodState() {
 		if (firstStatement != null && StatementHelper.isStatementLoggingStatement(firstStatement)) {
 			String correctSignature = generateSignatureString(currMethod);
-			VariableDeclarationStatement variableDeclarationStmt = (VariableDeclarationStatement)firstStatement;
-			if(StatementHelper.isLoggingStatementSignatureCorrect(variableDeclarationStmt, correctSignature)) {
+			VariableDeclarationStatement variableDeclarationStmt = (VariableDeclarationStatement) firstStatement;
+			if (StatementHelper.isLoggingStatementSignatureCorrect(variableDeclarationStmt, correctSignature)) {
 				return MethodStateEnum.CORRECT;
 			} else {
 				return MethodStateEnum.WRONG_SIGNATURE;
@@ -96,9 +107,9 @@ public class EntryExitLogVisitor extends ASTVisitor {
 		signature.append('(');
 
 		for (Object object : parameters) {
-			if(object instanceof SingleVariableDeclaration) {
+			if (object instanceof SingleVariableDeclaration) {
 				SingleVariableDeclaration currParameter = (SingleVariableDeclaration) object;
-				if(!firstParameter) {
+				if (!firstParameter) {
 					signature.append(", ");
 				}
 				signature.append(currParameter.getType().toString());

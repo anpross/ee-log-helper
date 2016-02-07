@@ -26,24 +26,34 @@
       <key
             commandId="EeLogHelper.commands.createLogStmtCommand"
             contextId="org.eclipse.ui.contexts.window"
-            sequence="M1+6"
+            sequence="CTRL+ALT+L"
             schemeId="org.eclipse.ui.defaultAcceleratorConfiguration">
       </key>
    </extension>
    <extension
          point="org.eclipse.ui.menus">
-      <menuContribution
-            locationURI="menu:org.eclipse.ui.main.menu?after=additions">
-         <menu
-               label="EeLogHelper"
-               mnemonic="M"
-               id="EeLogHelper.menus.EeLogMenu">
-            <command
-                  commandId="EeLogHelper.commands.createLogStmtCommand"
-                  mnemonic="S"
+      <menuContribution locationURI="popup:org.eclipse.jdt.ui.source.menu?after=additions">
+            <command commandId="EeLogHelper.commands.createLogStmtCommand" mnemonic="S"
                   id="EeLogHelper.menus.createLogStmtCommand">
+                  <visibleWhen>
+					<or>
+						<with
+		                     variable="activeMenuSelection">
+							<iterate>
+								<or>
+									<adapt type="org.eclipse.jdt.core.IJavaProject"/>
+									<adapt type="org.eclipse.jdt.core.IPackageFragment"/>
+									<adapt type="org.eclipse.jdt.core.IPackageFragmentRoot"/>
+									<adapt type="org.eclipse.jdt.core.ICompilationUnit"/>
+								</or>
+							</iterate>
+						</with>
+						<with variable="activeEditorId">
+						      <equals value="org.eclipse.jdt.ui.CompilationUnitEditor" />
+						</with>
+					</or>
+				</visibleWhen>
             </command>
-         </menu>
       </menuContribution>
    </extension>
 

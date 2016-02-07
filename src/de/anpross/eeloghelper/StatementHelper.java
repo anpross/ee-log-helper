@@ -16,14 +16,17 @@ import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.PrimitiveType;
 import org.eclipse.jdt.core.dom.QualifiedName;
+import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.StringLiteral;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 
+import de.anpross.eeloghelper.dtos.MethodDto;
 import de.anpross.eeloghelper.enums.EntryExitEnum;
 
+@SuppressWarnings("unchecked")
 public class StatementHelper {
 	private static final String CONST_NAME_LOG_CLASS = "LOG_CLASS";
 	private static final String CONST_NAME_LOG_METHOD = "LOG_METHOD";
@@ -35,7 +38,6 @@ public class StatementHelper {
 	private static final String CLASS_NAME_STRING = "String";
 	private static final String METHOD_NAME_ISLOGGABLE = "isLoggable";
 
-	@SuppressWarnings("unchecked")
 	public static VariableDeclarationStatement createMethodNameStatement(MethodDto method, AST ast) {
 		VariableDeclarationFragment newDeclarationFragment = ast.newVariableDeclarationFragment();
 		newDeclarationFragment.setName(ast.newSimpleName(CONST_NAME_LOG_METHOD));
@@ -63,7 +65,7 @@ public class StatementHelper {
 		MethodInvocation methodInvocation = ast.newMethodInvocation();
 		methodInvocation.setExpression(ast.newSimpleName(VARIABLE_NAME_LOGGER));
 		methodInvocation.setName(ast.newSimpleName(METHOD_NAME_ISLOGGABLE));
-		List arguments = methodInvocation.arguments();
+		List<SimpleName> arguments = methodInvocation.arguments();
 		arguments.add(ast.newSimpleName(CONST_NAME_DEFAULT_LEVEL));
 		fragment.setInitializer(methodInvocation);
 
@@ -86,7 +88,7 @@ public class StatementHelper {
 		MethodInvocation invocation = ast.newMethodInvocation();
 		invocation.setExpression(ast.newName(VARIABLE_NAME_LOGGER));
 		invocation.setName(ast.newSimpleName(entryExit.getMethodName()));
-		List arguments = invocation.arguments();
+		List<SimpleName> arguments = invocation.arguments();
 		arguments.add(ast.newSimpleName(CONST_NAME_LOG_CLASS));
 		arguments.add(ast.newSimpleName(CONST_NAME_LOG_METHOD));
 		ExpressionStatement expression = ast.newExpressionStatement(invocation);
@@ -109,7 +111,6 @@ public class StatementHelper {
 	 * @param stmt
 	 * @return
 	 */
-	@SuppressWarnings("unchecked")
 	public static boolean isStatementLoggingStatement(Statement stmt) {
 		if (stmt.getNodeType() == ASTNode.VARIABLE_DECLARATION_STATEMENT) {
 			VariableDeclarationStatement varDeclStatement = (VariableDeclarationStatement) stmt;
