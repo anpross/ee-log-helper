@@ -6,13 +6,13 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import de.anpross.eeloghelper.enums.MethodAnnotationEnum;
 import de.anpross.eeloghelper.enums.MethodStateEnum;
 
-public class MethodDto {
+public class MethodDto implements AnnotatatedItem {
 
 	String signatureString;
 	MethodDeclaration methodDeclaration;
 	Block methodBlock;
 	MethodStateEnum methodState;
-	MethodAnnotationEnum methodAnnontation;
+	MethodAnnotationEnum methodAnnotation;
 	private int methodLineNumber;
 	private int bodyLineNumber;
 
@@ -48,22 +48,25 @@ public class MethodDto {
 		this.methodState = methodState;
 	}
 
-	public MethodAnnotationEnum getAnnontation() {
-		return methodAnnontation;
+	public MethodAnnotationEnum getAnnotation() {
+		return methodAnnotation;
 	}
 
-	public void setAnnontation(MethodAnnotationEnum methodAnnontation) {
-		this.methodAnnontation = methodAnnontation;
+	public void setAnnotation(MethodAnnotationEnum methodAnnontation) {
+		this.methodAnnotation = methodAnnontation;
 	}
 
-	public int getMethodLineNumber() {
+	@Override
+	public int getSignatureLineNumber() {
+		// TODO Auto-generated method stub
 		return methodLineNumber;
 	}
 
-	public void setMethodLineNumber(int methodLineNumer) {
+	public void setSignatureLineNumber(int methodLineNumer) {
 		this.methodLineNumber = methodLineNumer;
 	}
 
+	@Override
 	public int getBodyLineNumber() {
 		return bodyLineNumber;
 	}

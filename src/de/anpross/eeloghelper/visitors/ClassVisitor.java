@@ -6,14 +6,17 @@ import java.util.List;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.Block;
+import org.eclipse.jdt.core.dom.BodyDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
+import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 
 import de.anpross.eeloghelper.StatementHelper;
+import de.anpross.eeloghelper.dtos.ClassDto;
 import de.anpross.eeloghelper.dtos.MethodDto;
 import de.anpross.eeloghelper.enums.MethodStateEnum;
 
@@ -34,6 +37,16 @@ public class ClassVisitor extends ASTVisitor {
 
 	List<FieldDeclaration> classFields = new ArrayList<FieldDeclaration>();
 	List<MethodDto> methods = new ArrayList<MethodDto>();
+	ClassDto classDto = new ClassDto();
+
+	@Override
+	public boolean visit(TypeDeclaration node) {
+		classDto.setSignatureLineNumber(compilationUnit.getLineNumber(node.getStartPosition()));
+		// classes need to have a body - i think
+		BodyDeclaration body = (BodyDeclaration) node.bodyDeclarations().get(0);
+		classDto.setBodyLineNumber(compilationUnit.getLineNumber(body.getStartPosition()));
+		return super.visit(node);
+	}
 
 	public ClassVisitor(CompilationUnit compilationUnit) {
 		this.compilationUnit = compilationUnit;
@@ -83,7 +96,7 @@ public class ClassVisitor extends ASTVisitor {
 		newMethod.setMethodDeclaration(currMethod);
 		newMethod.setSignatureString(generateSignatureString(currMethod));
 		newMethod.setMethodState(evaluateMethodState());
-		newMethod.setMethodLineNumber(currMethodLineNumber);
+		newMethod.setSignatureLineNumber(currMethodLineNumber);
 		newMethod.setBodyLineNumber(currBodyLineNumber);
 		methods.add(newMethod);
 	}
@@ -139,4 +152,7 @@ public class ClassVisitor extends ASTVisitor {
 		return classFields;
 	}
 
+	public ClassDto getClassDto() {
+		return classDto;
+	}
 }

@@ -1,6 +1,9 @@
 package de.anpross.eeloghelper.enums;
 
-public enum ClassAnnotationEnum {
+public enum CallTypeAnnotationEnum implements ItemAnnotation {
+	/** aka nothing */
+	NONE(""),
+
 	/** isLogging will be checked inside every method */
 	PER_CALL_EVAL("per-call"),
 
@@ -10,11 +13,12 @@ public enum ClassAnnotationEnum {
 	/** the string that is matched against the code */
 	String verb;
 
-	ClassAnnotationEnum(String mode) {
+	CallTypeAnnotationEnum(String mode) {
 		this.verb = mode;
 	}
 
-	String getVerb() {
+	@Override
+	public String getVerb() {
 		return verb;
 	}
 }

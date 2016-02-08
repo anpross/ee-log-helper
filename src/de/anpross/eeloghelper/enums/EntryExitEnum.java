@@ -5,6 +5,7 @@ public enum EntryExitEnum {
 	EXIT("exiting");
 
 	private String methodName;
+
 	EntryExitEnum(String methodName) {
 		this.methodName = methodName;
 	}
