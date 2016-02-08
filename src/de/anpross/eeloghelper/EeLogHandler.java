@@ -26,6 +26,7 @@ import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.ImportDeclaration;
 import org.eclipse.jdt.core.dom.LineComment;
 import org.eclipse.jdt.core.dom.QualifiedName;
+import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
@@ -114,7 +115,7 @@ public class EeLogHandler extends AbstractHandler {
 
 		List<MethodDto> methods = classVisitor.getMethods();
 		List<FieldDeclaration> classVariables = classVisitor.getClassVariables();
-		List<LineCommentDto> comments = lineCommentVisitor.getComments();
+		List<LineCommentDto> comments = lineCommentVisitor.getMethodComments();
 		corelateMethodsWithComments(methods, comments);
 
 		if (!methods.isEmpty()) {
@@ -126,15 +127,17 @@ public class EeLogHandler extends AbstractHandler {
 		for (MethodDto currMethod : methods) {
 			for (LineCommentDto currComment : comments) {
 
-				// method includes its javadoc, -1 because we are looking for the line above
-				int lineRangeStart = currMethod.getMethodLineNumber() -1;
+				// method includes its javadoc, -1 because we are looking for
+				// the line above
+				int lineRangeStart = currMethod.getMethodLineNumber() - 1;
 
-				// body is the last line of the method header (containing the <pre>{</pre> block start)
-				int lineRangeEnd = currMethod.getBodyLineNumber() -1;
+				// body is the last line of the method header (containing the
+				// <pre>{</pre> block start)
+				int lineRangeEnd = currMethod.getBodyLineNumber() - 1;
 
 				int commentLine = currComment.getLineNumber();
 
-				if( commentLine>= lineRangeStart && commentLine <= lineRangeEnd) {
+				if (commentLine >= lineRangeStart && commentLine <= lineRangeEnd) {
 					currMethod.setAnnontation(getMethodAnnontationFromComment(currComment.getComment()));
 				}
 			}
@@ -196,12 +199,23 @@ public class EeLogHandler extends AbstractHandler {
 						ast);
 				VariableDeclarationStatement isLoggingStmt = StatementHelper.createIsLoggingStatement(ast);
 				IfStatement entryStmt = StatementHelper.getEntryLoggingStatement(ast);
-				IfStatement exitStmt = StatementHelper.getExitingLoggingStatement(ast);
+				IfStatement exitStmt;
 
 				listRewrite.insertFirst(entryStmt, null);
 				listRewrite.insertFirst(isLoggingStmt, null);
 				listRewrite.insertFirst(methodNameStmt, null);
-				listRewrite.insertLast(exitStmt, null);
+
+				List originalStatements = listRewrite.getOriginalList();
+
+				if(lastStatementIsReturnStatement(originalStatements)) {
+					ReturnStatement returnStatement = (ReturnStatement) originalStatements.get(originalStatements.size() - 1);
+					Expression returnExpression = returnStatement.getExpression();
+					exitStmt = StatementHelper.getExitingLoggingStatement(ast, returnExpression);
+					listRewrite.insertBefore(exitStmt, returnStatement, null);
+				} else {
+					exitStmt = StatementHelper.getExitingLoggingStatement(ast, null);
+					listRewrite.insertLast(exitStmt, null);
+				}
 			} else if (currMethod.getMethodState() == MethodStateEnum.WRONG_SIGNATURE) {
 				VariableDeclarationStatement firstStatement = StatementHelper
 						.getFirstVariableDeclarationStatementOfBlock(methodBlock);
@@ -210,6 +224,16 @@ public class EeLogHandler extends AbstractHandler {
 				listRewrite.replace(firstStatement, replacementStatement, null);
 			}
 		}
+	}
+
+	private boolean lastStatementIsReturnStatement(List originalStatements) {
+		if (originalStatements.size() >= 1) {
+			Object lastStatement = originalStatements.get(originalStatements.size() - 1);
+			if (lastStatement instanceof ReturnStatement) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private void addLoggerImportToCompUnit(CompilationUnit parsedCompilationUnit, AST ast, ASTRewrite rewriter) {
@@ -251,8 +275,8 @@ public class EeLogHandler extends AbstractHandler {
 
 	private MethodAnnotationEnum getMethodAnnontationFromComment(String comment) {
 		if (comment != null) {
-			for(MethodAnnotationEnum currEnum : MethodAnnotationEnum.values()) {
-				if(comment.equals(currEnum.getVerb())) {
+			for (MethodAnnotationEnum currEnum : MethodAnnotationEnum.values()) {
+				if (comment.equals(currEnum.getVerb())) {
 					return currEnum;
 				}
 			}

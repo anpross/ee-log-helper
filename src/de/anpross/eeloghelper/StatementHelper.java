@@ -1,5 +1,6 @@
 package de.anpross.eeloghelper;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -77,20 +78,34 @@ public class StatementHelper {
 	}
 
 	public static IfStatement getEntryLoggingStatement(AST ast) {
-		return getEntryExitLoggingStatement(ast, EntryExitEnum.ENTRY);
+		List<SimpleName> arguments = new ArrayList<SimpleName>();
+		arguments.add(ast.newSimpleName(CONST_NAME_LOG_CLASS));
+		arguments.add(ast.newSimpleName(CONST_NAME_LOG_METHOD));
+		return getEntryExitLoggingStatement(ast, EntryExitEnum.ENTRY, arguments);
 	}
 
-	public static IfStatement getExitingLoggingStatement(AST ast) {
-		return getEntryExitLoggingStatement(ast, EntryExitEnum.EXIT);
+	public static IfStatement getExitingLoggingStatement(AST ast, Expression returnExpression) {
+		List arguments = new ArrayList();
+		arguments.add(ast.newSimpleName(CONST_NAME_LOG_CLASS));
+		arguments.add(ast.newSimpleName(CONST_NAME_LOG_METHOD));
+		if (returnExpression != null) {
+			arguments.add(returnExpression);
+		}
+		return getEntryExitLoggingStatement(ast, EntryExitEnum.EXIT, arguments);
 	}
 
-	private static IfStatement getEntryExitLoggingStatement(AST ast, EntryExitEnum entryExit) {
+	private static IfStatement getEntryExitLoggingStatement(AST ast, EntryExitEnum entryExit, List<SimpleName> arguments) {
 		MethodInvocation invocation = ast.newMethodInvocation();
 		invocation.setExpression(ast.newName(VARIABLE_NAME_LOGGER));
 		invocation.setName(ast.newSimpleName(entryExit.getMethodName()));
-		List<SimpleName> arguments = invocation.arguments();
-		arguments.add(ast.newSimpleName(CONST_NAME_LOG_CLASS));
-		arguments.add(ast.newSimpleName(CONST_NAME_LOG_METHOD));
+
+		List invocationArguments = invocation.arguments();
+		for (Object currArg : arguments) {
+			// need to copy the node as one node can not have 2 parents
+			ASTNode newNode = ASTNode.copySubtree(ast, (ASTNode) currArg);
+			invocationArguments.add(newNode);
+		}
+
 		ExpressionStatement expression = ast.newExpressionStatement(invocation);
 		return getIfLoggingStatement(ast, expression);
 	}
@@ -124,8 +139,7 @@ public class StatementHelper {
 		return false;
 	}
 
-	public static boolean isLoggingStatementSignatureCorrect(VariableDeclarationStatement stmt,
-			String correctSignature) {
+	public static boolean isLoggingStatementSignatureCorrect(VariableDeclarationStatement stmt, String correctSignature) {
 		return correctSignature.equals(getVariableDelcarationStringValue(stmt));
 	}
 
@@ -157,8 +171,7 @@ public class StatementHelper {
 
 	public static MethodInvocation createLoggerStatement(AST ast) {
 		MethodInvocation invocation = ast.newMethodInvocation();
-		invocation.setExpression(
-				ast.newQualifiedName(ast.newName(PACKAGE_NAME_LOGGER), ast.newSimpleName(CLASS_NAME_LOGGER)));
+		invocation.setExpression(ast.newQualifiedName(ast.newName(PACKAGE_NAME_LOGGER), ast.newSimpleName(CLASS_NAME_LOGGER)));
 		invocation.setName(ast.newSimpleName("getLogger"));
 		invocation.arguments().add(ast.newSimpleName(CONST_NAME_LOG_CLASS));
 		return invocation;
@@ -187,14 +200,14 @@ public class StatementHelper {
 	public static VariableDeclarationFragment getFirstStatement(VariableDeclarationStatement stmt) {
 		List<?> fragments = stmt.fragments();
 		Object firstFragment = fragments.get(0);
-		assert(firstFragment instanceof VariableDeclarationFragment);
+		assert (firstFragment instanceof VariableDeclarationFragment);
 		return (VariableDeclarationFragment) firstFragment;
 	}
 
 	public static VariableDeclarationFragment getFirstStatement(FieldDeclaration stmt) {
 		List<?> fragments = stmt.fragments();
 		Object firstFragment = fragments.get(0);
-		assert(firstFragment instanceof VariableDeclarationFragment);
+		assert (firstFragment instanceof VariableDeclarationFragment);
 		return (VariableDeclarationFragment) firstFragment;
 	}
 

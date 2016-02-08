@@ -24,7 +24,7 @@ public class LineCommentVisitor extends ASTVisitor {
 	String[] source;
 
 	List<FieldDeclaration> classFields = new ArrayList<FieldDeclaration>();
-	List<LineCommentDto> comments = new ArrayList<LineCommentDto>();
+	List<LineCommentDto> methodComments = new ArrayList<LineCommentDto>();
 
 	public LineCommentVisitor(CompilationUnit compilationUnit, String[] source) {
 		this.compilationUnit = compilationUnit;
@@ -39,22 +39,22 @@ public class LineCommentVisitor extends ASTVisitor {
 			this.currMethodComment = lineComment.substring(2);
 		}
 
-		appendNewLineComment();
+		methodComments.add(getNewLineComment());
 
 		return super.visit(node);
 	}
 
-	private void appendNewLineComment() {
+	private LineCommentDto getNewLineComment() {
 		LineCommentDto newComment = new LineCommentDto();
 		String currMethodComment = this.currMethodComment.replaceAll("EELOG", "").trim();
 		newComment.setComment(currMethodComment);
 
 		// not sure why but comment lines seam to be off by one.
 		newComment.setLineNumber(currCommentLineNumber + 1);
-		comments.add(newComment);
+		return newComment;
 	}
 
-	public List<LineCommentDto> getComments() {
-		return comments;
+	public List<LineCommentDto> getMethodComments() {
+		return methodComments;
 	}
 }
