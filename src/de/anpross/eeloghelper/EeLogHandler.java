@@ -7,14 +7,8 @@ import java.util.logging.Level;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
-import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IWorkspace;
-import org.eclipse.core.resources.IWorkspaceRoot;
-import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.jdt.core.ICompilationUnit;
-import org.eclipse.jdt.core.IPackageFragment;
-import org.eclipse.jdt.core.IPackageFragmentRoot;
-import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.core.ITypeRoot;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
@@ -33,10 +27,13 @@ import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
 import org.eclipse.jdt.core.dom.rewrite.ListRewrite;
+import org.eclipse.jdt.ui.JavaUI;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.Document;
 import org.eclipse.text.edits.MalformedTreeException;
 import org.eclipse.text.edits.TextEdit;
+import org.eclipse.ui.handlers.HandlerUtil;
+import org.eclipse.ui.texteditor.ITextEditor;
 
 import de.anpross.eeloghelper.dtos.AnnotatatedItem;
 import de.anpross.eeloghelper.dtos.ClassDto;
@@ -53,39 +50,25 @@ import de.anpross.eeloghelper.visitors.LineCommentVisitor;
 public class EeLogHandler extends AbstractHandler {
 
 	private static final String ANNOTATION_DELIMITER = " ";
-	private static final String JDT_NATURE = "org.eclipse.jdt.core.javanature";
 
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
-		IWorkspace workspace = ResourcesPlugin.getWorkspace();
-		IWorkspaceRoot root = workspace.getRoot();
-		// Get all projects in the workspace
-		IProject[] projects = root.getProjects();
-		// Loop over all projects
-		for (IProject project : projects) {
-			try {
-				if (project.isNatureEnabled(JDT_NATURE)) {
-					analyseMethods(project);
-				}
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
+		
+		ITextEditor editor = (ITextEditor) HandlerUtil.getActiveEditor(event);
+        ITypeRoot typeRoot = JavaUI.getEditorInputTypeRoot(editor.getEditorInput());
+        ICompilationUnit compilationUnit = (ICompilationUnit) typeRoot.getAdapter(ICompilationUnit.class);
+        
+		try {
+			createAST(compilationUnit);
+		} catch (JavaModelException | MalformedTreeException
+				| BadLocationException e) {
+			e.printStackTrace();
 		}
 		return null;
 	}
 
-	private void analyseMethods(IProject project) throws JavaModelException, MalformedTreeException, BadLocationException {
-		IPackageFragment[] packages = JavaCore.create(project).getPackageFragments();
 
-		for (IPackageFragment mypackage : packages) {
-			if (mypackage.getKind() == IPackageFragmentRoot.K_SOURCE) {
-				createAST(mypackage);
-			}
-		}
-	}
-
-	private void createAST(IPackageFragment mypackage) throws JavaModelException, MalformedTreeException, BadLocationException {
-		for (ICompilationUnit unit : mypackage.getCompilationUnits()) {
+	private void createAST(ICompilationUnit unit) throws JavaModelException, MalformedTreeException, BadLocationException {
 			String[] compilationUnitSource = unit.getSource().split("\n");
 			CompilationUnit parsedCompilationUnit = parse(unit);
 			List<AbstractTypeDeclaration> classes = parsedCompilationUnit.types();
@@ -99,7 +82,6 @@ public class EeLogHandler extends AbstractHandler {
 			edits.apply(document);
 
 			unit.getBuffer().setContents(document.get());
-		}
 	}
 
 	private void processClass(ASTRewrite rewrite, AbstractTypeDeclaration currClass, CompilationUnit parsedCompilationUnit,

@@ -58,7 +58,6 @@ public class MethodDto implements AnnotatatedItem {
 
 	@Override
 	public int getSignatureLineNumber() {
-		// TODO Auto-generated method stub
 		return methodLineNumber;
 	}
 
