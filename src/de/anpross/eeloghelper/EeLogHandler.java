@@ -1,5 +1,7 @@
 package de.anpross.eeloghelper;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
@@ -8,6 +10,8 @@ import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.jdt.core.ICompilationUnit;
+import org.eclipse.jdt.core.IJavaElement;
+import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.ITypeRoot;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.dom.AST;
@@ -30,9 +34,11 @@ import org.eclipse.jdt.core.dom.rewrite.ListRewrite;
 import org.eclipse.jdt.ui.JavaUI;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.Document;
+import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.text.edits.MalformedTreeException;
 import org.eclipse.text.edits.TextEdit;
-import org.eclipse.ui.handlers.HandlerUtil;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import de.anpross.eeloghelper.dtos.AnnotatatedItem;
@@ -53,38 +59,52 @@ public class EeLogHandler extends AbstractHandler {
 
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
-		
-		ITextEditor editor = (ITextEditor) HandlerUtil.getActiveEditor(event);
-        ITypeRoot typeRoot = JavaUI.getEditorInputTypeRoot(editor.getEditorInput());
-        ICompilationUnit compilationUnit = (ICompilationUnit) typeRoot.getAdapter(ICompilationUnit.class);
-        
+
+		IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+		ITextEditor editor = (ITextEditor) page.getActiveEditor();
+		IJavaElement elem = JavaUI.getEditorInputJavaElement(editor.getEditorInput());
+		IMethod currMethod = null;
+		if (elem instanceof ICompilationUnit) {
+			ITextSelection sel = (ITextSelection) editor.getSelectionProvider().getSelection();
+			IJavaElement selected;
 			try {
-				createAST(compilationUnit);
-			} catch (Exception e) {
-				e.printStackTrace();
+				selected = ((ICompilationUnit) elem).getElementAt(sel.getOffset());
+			} catch (JavaModelException e) {
+				throw new ExecutionException("JavaModelException", e);
 			}
+			if (selected != null && selected.getElementType() == IJavaElement.METHOD) {
+				currMethod = (IMethod) selected;
+			}
+		}
+		ITypeRoot typeRoot = JavaUI.getEditorInputTypeRoot(editor.getEditorInput());
+		ICompilationUnit compilationUnit = typeRoot.getAdapter(ICompilationUnit.class);
+		try {
+			createAST(compilationUnit, currMethod);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return null;
 	}
 
+	private void createAST(ICompilationUnit unit, IMethod currMethod)
+			throws JavaModelException, MalformedTreeException, BadLocationException {
+		String[] compilationUnitSource = unit.getSource().split("\n");
+		CompilationUnit parsedCompilationUnit = parse(unit);
+		List<AbstractTypeDeclaration> classes = parsedCompilationUnit.types();
+		ASTRewrite rewrite = ASTRewrite.create(parsedCompilationUnit.getAST());
+		addLoggerImportToCompUnit(parsedCompilationUnit, parsedCompilationUnit.getAST(), rewrite);
+		for (AbstractTypeDeclaration currClass : classes) {
+			processClass(rewrite, currClass, parsedCompilationUnit, compilationUnitSource, currMethod);
+		}
+		TextEdit edits = rewrite.rewriteAST();
+		Document document = new Document(unit.getSource());
+		edits.apply(document);
 
-	private void createAST(ICompilationUnit unit) throws JavaModelException, MalformedTreeException, BadLocationException {
-			String[] compilationUnitSource = unit.getSource().split("\n");
-			CompilationUnit parsedCompilationUnit = parse(unit);
-			List<AbstractTypeDeclaration> classes = parsedCompilationUnit.types();
-			ASTRewrite rewrite = ASTRewrite.create(parsedCompilationUnit.getAST());
-			addLoggerImportToCompUnit(parsedCompilationUnit, parsedCompilationUnit.getAST(), rewrite);
-			for (AbstractTypeDeclaration currClass : classes) {
-				processClass(rewrite, currClass, parsedCompilationUnit, compilationUnitSource);
-			}
-			TextEdit edits = rewrite.rewriteAST();
-			Document document = new Document(unit.getSource());
-			edits.apply(document);
-
-			unit.getBuffer().setContents(document.get());
+		unit.getBuffer().setContents(document.get());
 	}
 
 	private void processClass(ASTRewrite rewrite, AbstractTypeDeclaration currClass, CompilationUnit parsedCompilationUnit,
-			String[] compilationUnitSource) {
+			String[] compilationUnitSource, IMethod currMethod) {
 		ClassVisitor classVisitor = new ClassVisitor(parsedCompilationUnit);
 		currClass.accept(classVisitor);
 
@@ -106,10 +126,25 @@ public class EeLogHandler extends AbstractHandler {
 
 		corelateMethodsWithComments(methods, comments);
 		corelateClassWithComments(classDto, comments);
+		methods = filterForCurrentMethod(methods, currMethod);
 
 		if (!methods.isEmpty()) {
 			writeClassToRewriter(rewrite, currClass, methods, classVariables, classDto);
 		}
+	}
+
+	private List<MethodDto> filterForCurrentMethod(List<MethodDto> methods, IMethod currMethod) {
+
+		List<MethodDto> filteredList = new ArrayList<MethodDto>();
+		for (Iterator<MethodDto> iterator = methods.iterator(); iterator.hasNext();) {
+			MethodDto methodDto = iterator.next();
+			IMethod methodDtoElement = (IMethod) methodDto.getMethodDeclaration().resolveBinding().getJavaElement();
+			if (methodDtoElement != null && methodDtoElement.equals(currMethod)) {
+				filteredList.add(methodDto);
+				System.out.println("found method" + methodDto);
+			}
+		}
+		return filteredList;
 	}
 
 	private void corelateClassWithComments(ClassDto classDto, List<LineCommentDto> comments) {
@@ -279,7 +314,8 @@ public class EeLogHandler extends AbstractHandler {
 	}
 
 	private static CompilationUnit parse(ICompilationUnit unit) {
-		ASTParser parser = ASTParser.newParser(AST.JLS8);
+		@SuppressWarnings("deprecation") // this needs to work in eclipse 4.2
+		ASTParser parser = ASTParser.newParser(AST.JLS4);
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
 		parser.setSource(unit);
 		parser.setResolveBindings(true);

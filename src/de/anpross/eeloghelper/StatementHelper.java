@@ -13,11 +13,13 @@ import org.eclipse.jdt.core.dom.ExpressionStatement;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.IExtendedModifier;
 import org.eclipse.jdt.core.dom.IfStatement;
+import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.PrimitiveType;
 import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.SimpleName;
+import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.StringLiteral;
 import org.eclipse.jdt.core.dom.Type;
@@ -78,14 +80,14 @@ public class StatementHelper {
 	}
 
 	public static IfStatement getEntryLoggingStatement(AST ast) {
-		List<SimpleName> arguments = new ArrayList<SimpleName>();
+		List<Expression> arguments = new ArrayList<Expression>();
 		arguments.add(ast.newSimpleName(CONST_NAME_LOG_CLASS));
 		arguments.add(ast.newSimpleName(CONST_NAME_LOG_METHOD));
 		return getEntryExitLoggingStatement(ast, EntryExitEnum.ENTRY, arguments);
 	}
 
 	public static IfStatement getExitingLoggingStatement(AST ast, Expression returnExpression) {
-		List arguments = new ArrayList();
+		List<Expression> arguments = new ArrayList<Expression>();
 		arguments.add(ast.newSimpleName(CONST_NAME_LOG_CLASS));
 		arguments.add(ast.newSimpleName(CONST_NAME_LOG_METHOD));
 		if (returnExpression != null) {
@@ -94,15 +96,15 @@ public class StatementHelper {
 		return getEntryExitLoggingStatement(ast, EntryExitEnum.EXIT, arguments);
 	}
 
-	private static IfStatement getEntryExitLoggingStatement(AST ast, EntryExitEnum entryExit, List<SimpleName> arguments) {
+	private static IfStatement getEntryExitLoggingStatement(AST ast, EntryExitEnum entryExit, List<Expression> arguments) {
 		MethodInvocation invocation = ast.newMethodInvocation();
 		invocation.setExpression(ast.newName(VARIABLE_NAME_LOGGER));
 		invocation.setName(ast.newSimpleName(entryExit.getMethodName()));
 
-		List invocationArguments = invocation.arguments();
-		for (Object currArg : arguments) {
+		List<Expression> invocationArguments = invocation.arguments();
+		for (Expression currArg : arguments) {
 			// need to copy the node as one node can not have 2 parents
-			ASTNode newNode = ASTNode.copySubtree(ast, (ASTNode) currArg);
+			Expression newNode = (Expression) ASTNode.copySubtree(ast, currArg);
 			invocationArguments.add(newNode);
 		}
 
@@ -215,4 +217,24 @@ public class StatementHelper {
 		return ast.newQualifiedName(ast.newName(packageName), ast.newSimpleName(className));
 	}
 
+	public static String generateSignatureString(MethodDeclaration currMethod) {
+		boolean firstParameter = true;
+		List<?> parameters = currMethod.parameters();
+		StringBuilder signature = new StringBuilder();
+		signature.append(currMethod.getName().getIdentifier());
+		signature.append('(');
+
+		for (Object object : parameters) {
+			if (object instanceof SingleVariableDeclaration) {
+				SingleVariableDeclaration currParameter = (SingleVariableDeclaration) object;
+				if (!firstParameter) {
+					signature.append(", ");
+				}
+				signature.append(currParameter.getType().toString());
+				firstParameter = false;
+			}
+		}
+		signature.append(')');
+		return signature.toString();
+	}
 }

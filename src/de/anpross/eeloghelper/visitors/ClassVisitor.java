@@ -10,7 +10,6 @@ import org.eclipse.jdt.core.dom.BodyDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
-import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
@@ -94,7 +93,7 @@ public class ClassVisitor extends ASTVisitor {
 		MethodDto newMethod = new MethodDto();
 		newMethod.setMethodBlock(currMethodBlock);
 		newMethod.setMethodDeclaration(currMethod);
-		newMethod.setSignatureString(generateSignatureString(currMethod));
+		newMethod.setSignatureString(StatementHelper.generateSignatureString(currMethod));
 		newMethod.setMethodState(evaluateMethodState());
 		newMethod.setSignatureLineNumber(currMethodLineNumber);
 		newMethod.setBodyLineNumber(currBodyLineNumber);
@@ -103,7 +102,7 @@ public class ClassVisitor extends ASTVisitor {
 
 	private MethodStateEnum evaluateMethodState() {
 		if (firstStatement != null && StatementHelper.isStatementLoggingStatement(firstStatement)) {
-			String correctSignature = generateSignatureString(currMethod);
+			String correctSignature = StatementHelper.generateSignatureString(currMethod);
 			VariableDeclarationStatement variableDeclarationStmt = (VariableDeclarationStatement) firstStatement;
 			if (StatementHelper.isLoggingStatementSignatureCorrect(variableDeclarationStmt, correctSignature)) {
 				return MethodStateEnum.CORRECT;
@@ -113,27 +112,6 @@ public class ClassVisitor extends ASTVisitor {
 		} else {
 			return MethodStateEnum.MISSING;
 		}
-	}
-
-	private String generateSignatureString(MethodDeclaration currMethod) {
-		boolean firstParameter = true;
-		List<?> parameters = currMethod.parameters();
-		StringBuilder signature = new StringBuilder();
-		signature.append(currMethod.getName().getIdentifier());
-		signature.append('(');
-
-		for (Object object : parameters) {
-			if (object instanceof SingleVariableDeclaration) {
-				SingleVariableDeclaration currParameter = (SingleVariableDeclaration) object;
-				if (!firstParameter) {
-					signature.append(", ");
-				}
-				signature.append(currParameter.getType().toString());
-				firstParameter = false;
-			}
-		}
-		signature.append(')');
-		return signature.toString();
 	}
 
 	@Override
