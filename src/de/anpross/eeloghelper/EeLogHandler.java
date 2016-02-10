@@ -58,12 +58,11 @@ public class EeLogHandler extends AbstractHandler {
         ITypeRoot typeRoot = JavaUI.getEditorInputTypeRoot(editor.getEditorInput());
         ICompilationUnit compilationUnit = (ICompilationUnit) typeRoot.getAdapter(ICompilationUnit.class);
         
-		try {
-			createAST(compilationUnit);
-		} catch (JavaModelException | MalformedTreeException
-				| BadLocationException e) {
-			e.printStackTrace();
-		}
+			try {
+				createAST(compilationUnit);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		return null;
 	}
 
