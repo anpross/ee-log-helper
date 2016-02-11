@@ -79,24 +79,24 @@ public class StatementHelper {
 		return statement;
 	}
 
-	public static IfStatement getEntryLoggingStatement(AST ast) {
+	public static IfStatement createEntryLoggingStatement(AST ast) {
 		List<Expression> arguments = new ArrayList<Expression>();
 		arguments.add(ast.newSimpleName(CONST_NAME_LOG_CLASS));
 		arguments.add(ast.newSimpleName(CONST_NAME_LOG_METHOD));
-		return getEntryExitLoggingStatement(ast, EntryExitEnum.ENTRY, arguments);
+		return createEntryExitLoggingStatement(ast, EntryExitEnum.ENTRY, arguments);
 	}
 
-	public static IfStatement getExitingLoggingStatement(AST ast, Expression returnExpression) {
+	public static IfStatement createExitingLoggingStatement(AST ast, Expression returnExpression) {
 		List<Expression> arguments = new ArrayList<Expression>();
 		arguments.add(ast.newSimpleName(CONST_NAME_LOG_CLASS));
 		arguments.add(ast.newSimpleName(CONST_NAME_LOG_METHOD));
 		if (returnExpression != null) {
 			arguments.add(returnExpression);
 		}
-		return getEntryExitLoggingStatement(ast, EntryExitEnum.EXIT, arguments);
+		return createEntryExitLoggingStatement(ast, EntryExitEnum.EXIT, arguments);
 	}
 
-	private static IfStatement getEntryExitLoggingStatement(AST ast, EntryExitEnum entryExit, List<Expression> arguments) {
+	private static IfStatement createEntryExitLoggingStatement(AST ast, EntryExitEnum entryExit, List<Expression> arguments) {
 		MethodInvocation invocation = ast.newMethodInvocation();
 		invocation.setExpression(ast.newName(VARIABLE_NAME_LOGGER));
 		invocation.setName(ast.newSimpleName(entryExit.getMethodName()));
@@ -109,10 +109,10 @@ public class StatementHelper {
 		}
 
 		ExpressionStatement expression = ast.newExpressionStatement(invocation);
-		return getIfLoggingStatement(ast, expression);
+		return createIfLoggingStatement(ast, expression);
 	}
 
-	private static IfStatement getIfLoggingStatement(AST ast, Statement thenStatement) {
+	private static IfStatement createIfLoggingStatement(AST ast, Statement thenStatement) {
 		IfStatement statement = ast.newIfStatement();
 		statement.setExpression(ast.newSimpleName(VARIABLE_NAME_ISLOGGING));
 		Block thenBlock = ast.newBlock();

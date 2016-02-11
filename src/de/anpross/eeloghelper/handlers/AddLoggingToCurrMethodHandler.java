@@ -63,14 +63,14 @@ public class AddLoggingToCurrMethodHandler extends AbstractHandler {
 		IMethod currentMethod = parsingHelper.getCurrentMethod(currEditor, compilationUnit);
 
 		try {
-			createAST(compilationUnit, currentMethod);
+			processCompilationUnit(compilationUnit, currentMethod);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
-	private void createAST(ICompilationUnit unit, IMethod currMethod)
+	private void processCompilationUnit(ICompilationUnit unit, IMethod currMethod)
 			throws JavaModelException, MalformedTreeException, BadLocationException {
 		String[] compilationUnitSource = unit.getSource().split("\n");
 		CompilationUnit parsedCompilationUnit = parsingHelper.parse(unit);
@@ -175,7 +175,7 @@ public class AddLoggingToCurrMethodHandler extends AbstractHandler {
 				VariableDeclarationStatement isLoggingStmt = StatementHelper.createIsLoggingStatement(ast);
 				listRewrite.insertAfter(isLoggingStmt, methodNameStmt, null);
 
-				IfStatement entryStmt = StatementHelper.getEntryLoggingStatement(ast);
+				IfStatement entryStmt = StatementHelper.createEntryLoggingStatement(ast);
 				listRewrite.insertAfter(entryStmt, isLoggingStmt, null);
 
 				parsingHelper.insertExitLogStatement(ast, listRewrite);
