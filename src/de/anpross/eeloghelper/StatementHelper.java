@@ -83,20 +83,44 @@ public class StatementHelper {
 		List<Expression> arguments = new ArrayList<Expression>();
 		arguments.add(ast.newSimpleName(CONST_NAME_LOG_CLASS));
 		arguments.add(ast.newSimpleName(CONST_NAME_LOG_METHOD));
-		return createEntryExitLoggingStatement(ast, EntryExitEnum.ENTRY, arguments);
+		MethodInvocation invocation = createEntryExitLoggingStatement(ast, EntryExitEnum.ENTRY, arguments);
+		ExpressionStatement expression = ast.newExpressionStatement(invocation);
+		return createIfLoggingStatement(ast, expression);
 	}
 
-	public static IfStatement createExitingLoggingStatement(AST ast, Expression returnExpression) {
+	public static IfStatement createEntryLoggingIfStatement(AST ast, Expression returnExpression) {
+		MethodInvocation invocation = createExitingLoggingInvocation(ast, returnExpression);
+		ExpressionStatement expression = ast.newExpressionStatement(invocation);
+		return createIfLoggingStatement(ast, expression);
+	}
+
+	public static IfStatement createExitingLoggingIfStatement(AST ast, Expression returnExpression) {
+		MethodInvocation invocation = createExitingLoggingInvocation(ast, returnExpression);
+		ExpressionStatement expression = ast.newExpressionStatement(invocation);
+		return createIfLoggingStatement(ast, expression);
+	}
+
+	public static MethodInvocation createExitingLoggingInvocation(AST ast, Expression returnExpression) {
+		return createExitingLoggingInvocation(ast, returnExpression, ast.newSimpleName(CONST_NAME_LOG_METHOD));
+	}
+
+	public static MethodInvocation createExitingLoggingInvocation(AST ast, Expression returnExpression, Expression methodSignature) {
+		List<Expression> loggingArguments = createExitingLoggingArguments(ast, returnExpression, methodSignature);
+		MethodInvocation invocation = createEntryExitLoggingStatement(ast, EntryExitEnum.EXIT, loggingArguments);
+		return invocation;
+	}
+
+	public static List<Expression> createExitingLoggingArguments(AST ast, Expression returnExpression, Expression methodSignature) {
 		List<Expression> arguments = new ArrayList<Expression>();
 		arguments.add(ast.newSimpleName(CONST_NAME_LOG_CLASS));
-		arguments.add(ast.newSimpleName(CONST_NAME_LOG_METHOD));
+		arguments.add(methodSignature);
 		if (returnExpression != null) {
 			arguments.add(returnExpression);
 		}
-		return createEntryExitLoggingStatement(ast, EntryExitEnum.EXIT, arguments);
+		return arguments;
 	}
 
-	private static IfStatement createEntryExitLoggingStatement(AST ast, EntryExitEnum entryExit, List<Expression> arguments) {
+	private static MethodInvocation createEntryExitLoggingStatement(AST ast, EntryExitEnum entryExit, List<Expression> arguments) {
 		MethodInvocation invocation = ast.newMethodInvocation();
 		invocation.setExpression(ast.newName(VARIABLE_NAME_LOGGER));
 		invocation.setName(ast.newSimpleName(entryExit.getMethodName()));
@@ -108,8 +132,7 @@ public class StatementHelper {
 			invocationArguments.add(newNode);
 		}
 
-		ExpressionStatement expression = ast.newExpressionStatement(invocation);
-		return createIfLoggingStatement(ast, expression);
+		return invocation;
 	}
 
 	private static IfStatement createIfLoggingStatement(AST ast, Statement thenStatement) {

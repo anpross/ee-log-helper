@@ -129,10 +129,10 @@ public class ParsingHelper {
 		if (lastStatementIsReturnStatement(originalStatements)) {
 			ReturnStatement returnStatement = (ReturnStatement) originalStatements.get(originalStatements.size() - 1);
 			Expression returnExpression = returnStatement.getExpression();
-			IfStatement exitStmt = StatementHelper.createExitingLoggingStatement(ast, returnExpression);
+			IfStatement exitStmt = StatementHelper.createExitingLoggingIfStatement(ast, returnExpression);
 			listRewrite.insertBefore(exitStmt, returnStatement, null);
 		} else {
-			IfStatement exitStmt = StatementHelper.createExitingLoggingStatement(ast, null);
+			IfStatement exitStmt = StatementHelper.createExitingLoggingIfStatement(ast, null);
 			listRewrite.insertLast(exitStmt, null);
 		}
 	}
