@@ -15,6 +15,7 @@ public class EeLogConstants {
 	public static final String CLASS_NAME_STRING = "String";
 	public static final String CLASS_NAME_LEVEL = "Level";
 	public static final String METHOD_NAME_ISLOGGABLE = "isLoggable";
+	public static final String METHOD_NAME_GETLOGGER = "getLogger";
 
 	public static QualifiedName getQNameLogger(AST ast) {
 		return StatementHelper.getQName(EeLogConstants.PACKAGE_NAME_LOGGING, EeLogConstants.CLASS_NAME_LOGGER, ast);

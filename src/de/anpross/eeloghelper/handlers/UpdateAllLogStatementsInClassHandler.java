@@ -33,14 +33,14 @@ import de.anpross.eeloghelper.visitors.ClassUpdateVisitor;
 
 public class UpdateAllLogStatementsInClassHandler extends AbstractHandler {
 	@Inject
-	IEclipseContext context;
+	IEclipseContext diContext;
 
 	ParsingHelper parsingHelper;
 	LoggerMethodMacher loggerMatcher;
 
 	public UpdateAllLogStatementsInClassHandler() {
-		parsingHelper = ContextInjectionFactory.make(ParsingHelper.class, context);
-		loggerMatcher = ContextInjectionFactory.make(LoggerMethodMacher.class, context);
+		parsingHelper = ContextInjectionFactory.make(ParsingHelper.class, diContext);
+		loggerMatcher = ContextInjectionFactory.make(LoggerMethodMacher.class, diContext);
 
 	}
 
@@ -67,7 +67,7 @@ public class UpdateAllLogStatementsInClassHandler extends AbstractHandler {
 
 			edits = rewrite.rewriteAST();
 			Document document = new Document(compilationUnit.getSource());
-			edits.apply(document);
+			edits.apply(document, TextEdit.UPDATE_REGIONS);
 
 			compilationUnit.getBuffer().setContents(document.get());
 		} catch (Exception e) {

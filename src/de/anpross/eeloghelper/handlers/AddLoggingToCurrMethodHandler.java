@@ -33,6 +33,7 @@ import org.eclipse.text.edits.MalformedTreeException;
 import org.eclipse.text.edits.TextEdit;
 import org.eclipse.ui.texteditor.ITextEditor;
 
+import de.anpross.eeloghelper.EditorPositionBean;
 import de.anpross.eeloghelper.EeLogConstants;
 import de.anpross.eeloghelper.ParsingHelper;
 import de.anpross.eeloghelper.StatementHelper;
@@ -47,12 +48,18 @@ import de.anpross.eeloghelper.visitors.LineCommentVisitor;
 public class AddLoggingToCurrMethodHandler extends AbstractHandler {
 
 	@Inject
-	IEclipseContext context;
+	IEclipseContext diContext;
 
+	@Inject
 	ParsingHelper parsingHelper;
 
+	@Inject
+	EditorPositionBean editorPosition;
+
 	public AddLoggingToCurrMethodHandler() {
-		parsingHelper = ContextInjectionFactory.make(ParsingHelper.class, context);
+		parsingHelper = ContextInjectionFactory.make(ParsingHelper.class, diContext);
+		editorPosition = ContextInjectionFactory.make(EditorPositionBean.class, diContext);
+
 	}
 
 	@Override
@@ -67,6 +74,7 @@ public class AddLoggingToCurrMethodHandler extends AbstractHandler {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		currEditor.getSelectionProvider().setSelection(editorPosition.getCurrSelection());
 		return null;
 	}
 

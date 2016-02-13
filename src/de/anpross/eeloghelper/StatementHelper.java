@@ -197,7 +197,7 @@ public class StatementHelper {
 	public static MethodInvocation createLoggerStatement(AST ast) {
 		MethodInvocation invocation = ast.newMethodInvocation();
 		invocation.setExpression(ast.newQualifiedName(ast.newName(PACKAGE_NAME_LOGGER), ast.newSimpleName(CLASS_NAME_LOGGER)));
-		invocation.setName(ast.newSimpleName("getLogger"));
+		invocation.setName(ast.newSimpleName(EeLogConstants.METHOD_NAME_GETLOGGER));
 		invocation.arguments().add(ast.newSimpleName(CONST_NAME_LOG_CLASS));
 		return invocation;
 	}

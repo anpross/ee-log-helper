@@ -5,7 +5,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.StringTokenizer;
 
+import javax.inject.Inject;
+
 import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.e4.core.di.annotations.Creatable;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IMethod;
@@ -34,7 +37,11 @@ import de.anpross.eeloghelper.enums.CallTypeAnnotationEnum;
 import de.anpross.eeloghelper.enums.DefaultBehaviorEnum;
 import de.anpross.eeloghelper.enums.MethodAnnotationEnum;
 
+@Creatable
 public class ParsingHelper {
+
+	@Inject
+	EditorPositionBean editorPosition;
 
 	private static final String ANNOTATION_DELIMITER = " ";
 
@@ -53,6 +60,7 @@ public class ParsingHelper {
 
 	public IMethod getCurrentMethod(ITextEditor editor, ICompilationUnit compUnit) throws ExecutionException {
 		ITextSelection sel = (ITextSelection) editor.getSelectionProvider().getSelection();
+		editorPosition.setCurrSelection(sel);
 		IJavaElement selected;
 		try {
 			selected = compUnit.getElementAt(sel.getOffset());
