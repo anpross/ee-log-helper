@@ -6,7 +6,7 @@ import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 @SuppressWarnings("unchecked")
-public class AddLoggingToCurrMethodHandler extends AddLoggingHandler {
+public class AddLoggingToCurrCompilationUnitHandler extends AddLoggingHandler {
 
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {

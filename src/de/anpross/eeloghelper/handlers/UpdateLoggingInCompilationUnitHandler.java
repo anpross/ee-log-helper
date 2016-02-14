@@ -31,14 +31,14 @@ import de.anpross.eeloghelper.StatementHelper;
 import de.anpross.eeloghelper.dtos.ClassUpdateResultDto;
 import de.anpross.eeloghelper.visitors.ClassUpdateVisitor;
 
-public class UpdateAllLogStatementsInClassHandler extends AbstractHandler {
+public class UpdateLoggingInCompilationUnitHandler extends AbstractHandler {
 	@Inject
 	IEclipseContext diContext;
 
 	ParsingHelper parsingHelper;
 	LoggerMethodMacher loggerMatcher;
 
-	public UpdateAllLogStatementsInClassHandler() {
+	public UpdateLoggingInCompilationUnitHandler() {
 		parsingHelper = ContextInjectionFactory.make(ParsingHelper.class, diContext);
 		loggerMatcher = ContextInjectionFactory.make(LoggerMethodMacher.class, diContext);
 
@@ -48,9 +48,11 @@ public class UpdateAllLogStatementsInClassHandler extends AbstractHandler {
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 
 		ITextEditor currEditor = parsingHelper.getCurrEditor();
+		parsingHelper.getAndStoreCurrentSelection(currEditor);
 		ICompilationUnit compilationUnit = parsingHelper.getCurrenEditorsCompUnit(currEditor);
 
 		updateCompilationUnit(compilationUnit);
+		parsingHelper.moveToStoredEditorPos(currEditor);
 		return null;
 	}
 

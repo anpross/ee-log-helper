@@ -59,8 +59,7 @@ public class ParsingHelper {
 	}
 
 	public IMethod getCurrentMethod(ITextEditor editor, ICompilationUnit compUnit) throws ExecutionException {
-		ITextSelection sel = (ITextSelection) editor.getSelectionProvider().getSelection();
-		editorPosition.setCurrSelection(sel);
+		ITextSelection sel = getAndStoreCurrentSelection(editor);
 		IJavaElement selected;
 		try {
 			selected = compUnit.getElementAt(sel.getOffset());
@@ -71,6 +70,12 @@ public class ParsingHelper {
 			return (IMethod) selected;
 		}
 		return null;
+	}
+
+	public ITextSelection getAndStoreCurrentSelection(ITextEditor editor) {
+		ITextSelection sel = (ITextSelection) editor.getSelectionProvider().getSelection();
+		editorPosition.setCurrSelection(sel);
+		return sel;
 	}
 
 	public void corelateClassWithComments(ClassDto classDto, List<LineCommentDto> comments) {
@@ -231,5 +236,9 @@ public class ParsingHelper {
 			}
 		}
 		return DefaultBehaviorEnum.DEFAULT_ON;
+	}
+
+	public void moveToStoredEditorPos(ITextEditor currEditor) {
+		currEditor.getSelectionProvider().setSelection(editorPosition.getCurrSelection());
 	}
 }

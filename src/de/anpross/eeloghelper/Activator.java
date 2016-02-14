@@ -1,9 +1,5 @@
 package de.anpross.eeloghelper;
 
-import javax.inject.Inject;
-
-import org.eclipse.e4.core.contexts.ContextInjectionFactory;
-import org.eclipse.e4.core.contexts.IEclipseContext;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
@@ -18,8 +14,6 @@ public class Activator extends AbstractUIPlugin {
 
 	// The shared instance
 	private static Activator plugin;
-	@Inject
-	IEclipseContext diContext;
 
 	/**
 	 * The constructor
@@ -35,7 +29,6 @@ public class Activator extends AbstractUIPlugin {
 	@Override
 	public void start(BundleContext context) throws Exception {
 		super.start(context);
-		ContextInjectionFactory.make(ParsingHelper.class, diContext);
 		plugin = this;
 	}
 

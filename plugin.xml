@@ -1,92 +1,94 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.4"?>
 <plugin>
-
-   <extension
-         point="org.eclipse.ui.commands">
-      <category
-            name="EE Log Category"
-            id="EeLogHelper.commands.category">
-      </category>
-      <command
-            name="add Entry/Exit log statement"
-            categoryId="EeLogHelper.commands.category"
-            id="EeLogHelper.commands.createLogStmtCommand">
-      </command>
-      <command
-            name="update Entry/Exit log statements"
-            categoryId="EeLogHelper.commands.category"
-            id="EeLogHelper.commands.updateLogStmtCommand">
-      </command>   </extension>
-   <extension
-         point="org.eclipse.ui.handlers">
-      <handler
-            commandId="EeLogHelper.commands.createLogStmtCommand"
-            class="de.anpross.eeloghelper.handlers.AddLoggingToCurrMethodHandler">
-      </handler>
-      <handler
-            commandId="EeLogHelper.commands.updateLogStmtCommand"
-            class="de.anpross.eeloghelper.handlers.UpdateAllLogStatementsInClassHandler">
-      </handler>
-   </extension>
-   <extension
-         point="org.eclipse.ui.bindings">
-      <key
-            commandId="EeLogHelper.commands.createLogStmtCommand"
-            contextId="org.eclipse.ui.contexts.window"
-            sequence="CTRL+ALT+L"
-            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration">
-      </key>
-      <key
-            commandId="EeLogHelper.commands.updateLogStmtCommand"
-            contextId="org.eclipse.ui.contexts.window"
-            sequence="CTRL+ALT+U"
-            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration">
-      </key>   </extension>
-   <extension
-         point="org.eclipse.ui.menus">
-      <menuContribution locationURI="popup:org.eclipse.jdt.ui.source.menu?after=additions">
-            <command commandId="EeLogHelper.commands.createLogStmtCommand" mnemonic="L"
-                  id="EeLogHelper.menus.createLogStmtCommand">
-                  <visibleWhen>
+	<extension point="org.eclipse.ui.commands">
+		<category name="EE Log Category" id="EeLogHelper.commands.category">
+		</category>
+		<command name="add Entry/Exit log statement to method" categoryId="EeLogHelper.commands.category" id="EeLogHelper.commands.addLogStmtToMethodCommand">
+		</command>
+		<command name="add Entry/Exit log statement to file" categoryId="EeLogHelper.commands.category" id="EeLogHelper.commands.addLogStmtToCompUnitCommand">
+		</command>
+		<command name="update Entry/Exit log statements" categoryId="EeLogHelper.commands.category" id="EeLogHelper.commands.updateLogStmtCommand">
+		</command>
+	</extension>
+	<extension point="org.eclipse.ui.handlers">
+		<handler commandId="EeLogHelper.commands.addLogStmtToMethodCommand" class="de.anpross.eeloghelper.handlers.AddLoggingToCurrMethodHandler">
+		</handler>
+		<handler commandId="EeLogHelper.commands.addLogStmtToCompUnitCommand" class="de.anpross.eeloghelper.handlers.AddLoggingToCurrCompilationUnitHandler">
+		</handler>
+		<handler commandId="EeLogHelper.commands.updateLogStmtCommand" class="de.anpross.eeloghelper.handlers.UpdateLoggingInCompilationUnitHandler">
+		</handler>
+	</extension>
+	<extension point="org.eclipse.ui.bindings">
+		<key commandId="EeLogHelper.commands.addLogStmtToMethodCommand" contextId="org.eclipse.ui.contexts.window" sequence="CTRL+ALT+L"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration">
+		</key>
+		<key commandId="EeLogHelper.commands.addLogStmtToCompUnitCommand" contextId="org.eclipse.ui.contexts.window" sequence="CTRL+ALT+SHIFT+L"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration">
+		</key>
+		<key commandId="EeLogHelper.commands.updateLogStmtCommand" contextId="org.eclipse.ui.contexts.window" sequence="CTRL+ALT+U"
+			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration">
+		</key>
+	</extension>
+	<extension point="org.eclipse.ui.menus">
+		<menuContribution locationURI="popup:org.eclipse.jdt.ui.source.menu?after=additions">
+			<command commandId="EeLogHelper.commands.addLogStmtToMethodCommand" mnemonic="L" id="EeLogHelper.menus.addLogStmtToMethodCommand">
+				<visibleWhen>
 					<or>
 						<with variable="activeMenuSelection">
 							<iterate>
 								<or>
-									<adapt type="org.eclipse.jdt.core.IJavaProject"/>
-									<adapt type="org.eclipse.jdt.core.IPackageFragment"/>
-									<adapt type="org.eclipse.jdt.core.IPackageFragmentRoot"/>
-									<adapt type="org.eclipse.jdt.core.ICompilationUnit"/>
+									<adapt type="org.eclipse.jdt.core.IJavaProject" />
+									<adapt type="org.eclipse.jdt.core.IPackageFragment" />
+									<adapt type="org.eclipse.jdt.core.IPackageFragmentRoot" />
+									<adapt type="org.eclipse.jdt.core.ICompilationUnit" />
 								</or>
 							</iterate>
 						</with>
 						<with variable="activeEditorId">
-						      <equals value="org.eclipse.jdt.ui.CompilationUnitEditor" />
+							<equals value="org.eclipse.jdt.ui.CompilationUnitEditor" />
 						</with>
 					</or>
 				</visibleWhen>
-            </command>
-            <command commandId="EeLogHelper.commands.updateLogStmtCommand" mnemonic="U"
-                  id="EeLogHelper.menus.updateLogStmtCommand">
-                  <visibleWhen>
+			</command>
+			<command commandId="EeLogHelper.commands.addLogStmtToCompUnitCommand" mnemonic="F" id="EeLogHelper.menus.addLogStmtToCompUnitCommand">
+				<visibleWhen>
 					<or>
 						<with variable="activeMenuSelection">
 							<iterate>
 								<or>
-									<adapt type="org.eclipse.jdt.core.IJavaProject"/>
-									<adapt type="org.eclipse.jdt.core.IPackageFragment"/>
-									<adapt type="org.eclipse.jdt.core.IPackageFragmentRoot"/>
-									<adapt type="org.eclipse.jdt.core.ICompilationUnit"/>
+									<adapt type="org.eclipse.jdt.core.IJavaProject" />
+									<adapt type="org.eclipse.jdt.core.IPackageFragment" />
+									<adapt type="org.eclipse.jdt.core.IPackageFragmentRoot" />
+									<adapt type="org.eclipse.jdt.core.ICompilationUnit" />
 								</or>
 							</iterate>
 						</with>
 						<with variable="activeEditorId">
-						      <equals value="org.eclipse.jdt.ui.CompilationUnitEditor" />
+							<equals value="org.eclipse.jdt.ui.CompilationUnitEditor" />
 						</with>
 					</or>
 				</visibleWhen>
-            </command>
-      </menuContribution>
-   </extension>
-
+			</command>
+			<command commandId="EeLogHelper.commands.updateLogStmtCommand" mnemonic="U" id="EeLogHelper.menus.updateLogStmtCommand">
+				<visibleWhen>
+					<or>
+						<with variable="activeMenuSelection">
+							<iterate>
+								<or>
+									<adapt type="org.eclipse.jdt.core.IJavaProject" />
+									<adapt type="org.eclipse.jdt.core.IPackageFragment" />
+									<adapt type="org.eclipse.jdt.core.IPackageFragmentRoot" />
+									<adapt type="org.eclipse.jdt.core.ICompilationUnit" />
+								</or>
+							</iterate>
+						</with>
+						<with variable="activeEditorId">
+							<equals value="org.eclipse.jdt.ui.CompilationUnitEditor" />
+						</with>
+					</or>
+				</visibleWhen>
+			</command>
+		</menuContribution>
+	</extension>
 </plugin>
