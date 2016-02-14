@@ -21,4 +21,17 @@ public enum CallTypeAnnotationEnum implements ItemAnnotation {
 	public String getVerb() {
 		return verb;
 	}
+
+	/**
+	 * encapsulates the default behavior switch.
+	 *
+	 * @return the effective call-type mode.
+	 */
+	public CallTypeAnnotationEnum getEffectiveMode() {
+		if (this == CallTypeAnnotationEnum.NONE) {
+			return CallTypeAnnotationEnum.PER_CALL_EVAL;
+		} else {
+			return this;
+		}
+	}
 }

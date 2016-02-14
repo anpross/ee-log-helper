@@ -19,7 +19,10 @@ import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.LineComment;
-import org.eclipse.jdt.core.dom.QualifiedName;
+import org.eclipse.jdt.core.dom.Name;
+import org.eclipse.jdt.core.dom.PrimitiveType;
+import org.eclipse.jdt.core.dom.Statement;
+import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
@@ -37,6 +40,7 @@ import de.anpross.eeloghelper.StatementHelper;
 import de.anpross.eeloghelper.dtos.ClassDto;
 import de.anpross.eeloghelper.dtos.LineCommentDto;
 import de.anpross.eeloghelper.dtos.MethodDto;
+import de.anpross.eeloghelper.enums.CallTypeAnnotationEnum;
 import de.anpross.eeloghelper.enums.MethodStateEnum;
 import de.anpross.eeloghelper.visitors.ClassVisitor;
 import de.anpross.eeloghelper.visitors.LineCommentVisitor;
@@ -114,43 +118,50 @@ public abstract class AddLoggingHandler extends AbstractHandler {
 			List<FieldDeclaration> classVariables, ClassDto classDto) {
 		AST ast = currClass.getAST();
 
-		addClassVariableAsFirstIfMissing(EeLogConstants.getQNameLogger(ast), EeLogConstants.VARIABLE_NAME_LOGGER, classVariables,
+		if (classDto.getCallTypeAnnotation().equals(CallTypeAnnotationEnum.PER_INSTANCE_EVAL)) {
+			System.out.println("we are in PER-INSTANCE mode");
+			Expression creteIsLoggingExpression = StatementHelper.createIsLoggingMethodInvocation(ast);
+			addClassFieldAsFirstIfMissing(ast.newPrimitiveType(PrimitiveType.BOOLEAN),
+					ast.newSimpleName(EeLogConstants.VARIABLE_NAME_ISLOGGING), classVariables, creteIsLoggingExpression, ast, rewrite,
+					currClass);
+		}
+
+		addClassFieldAsFirstIfMissing(EeLogConstants.getLoggerType(ast), EeLogConstants.getLoggerName(ast), classVariables,
 				StatementHelper.createLoggerStatement(ast), ast, rewrite, currClass);
-		addClassVariableAsFirstIfMissing(EeLogConstants.getQNameString(ast), EeLogConstants.CONST_NAME_LOG_CLASS, classVariables,
+		addClassFieldAsFirstIfMissing(EeLogConstants.getTypeString(ast), EeLogConstants.getLogClassName(ast), classVariables,
 				StatementHelper.createClassNameStringLiteral(currClass, ast), ast, rewrite, currClass);
-		addClassVariableAsFirstIfMissing(EeLogConstants.getQNameLevel(ast), EeLogConstants.CONST_NAME_DEFAULT_LEVEL, classVariables,
+		addClassFieldAsFirstIfMissing(EeLogConstants.getTypeLevel(ast), EeLogConstants.getDefaultLevelName(ast), classVariables,
 				StatementHelper.createLogLevelStatement(Level.FINER, ast), ast, rewrite, currClass);
 
 		writeMethodsToRewriter(methods, classDto, rewrite, ast);
 	}
 
-	private void addClassVariableAsFirstIfMissing(QualifiedName qualifiedClassName, String variableName,
-			List<FieldDeclaration> classVariables, Expression value, AST ast, ASTRewrite rewriter, AbstractTypeDeclaration currClass) {
+	private void addClassFieldAsFirstIfMissing(Type fieldType, Name fieldName, List<FieldDeclaration> classVariables, Expression value,
+			AST ast, ASTRewrite rewriter, AbstractTypeDeclaration currClass) {
 		for (FieldDeclaration currVar : classVariables) {
 			Object firstFragment = StatementHelper.getFirstStatement(currVar);
 			if (firstFragment instanceof VariableDeclarationFragment) {
 				VariableDeclarationFragment fragment = (VariableDeclarationFragment) firstFragment;
-				boolean typesMatch = currVar.getType().resolveBinding().getQualifiedName()
-						.equals(qualifiedClassName.getFullyQualifiedName());
-				boolean idendifierMatch = fragment.getName().getIdentifier().equals(variableName);
+				boolean typesMatch = parsingHelper.isTypesEqual(currVar.getType(), fieldType);
+				boolean idendifierMatch = parsingHelper.isIdentifierEqual(fieldName, fragment.getName());
 				if (idendifierMatch && typesMatch) {
 					return;
 				}
 			}
 		}
-		writeClassFieldsToRewriter(qualifiedClassName, variableName, value, ast, rewriter, currClass);
+		writeClassFieldsToRewriter(fieldType, fieldName, value, ast, rewriter, currClass);
 	}
 
-	private void writeClassFieldsToRewriter(QualifiedName qualifiedClassName, String variableName, Expression initializerExpression,
-			AST ast, ASTRewrite rewriter, AbstractTypeDeclaration currClass) {
-		System.out.println("need to add a " + qualifiedClassName + " called " + variableName + " of " + initializerExpression);
+	private void writeClassFieldsToRewriter(Type fieldType, Name fieldName, Expression initializerExpression, AST ast, ASTRewrite rewriter,
+			AbstractTypeDeclaration currClass) {
+		System.out.println("need to add a " + fieldType + " called " + fieldName + " of " + initializerExpression);
 		ListRewrite listRewrite = rewriter.getListRewrite(currClass, TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
 
 		VariableDeclarationFragment declarationFragment = ast.newVariableDeclarationFragment();
-		declarationFragment.setName(ast.newSimpleName(variableName));
+		declarationFragment.setName(parsingHelper.getSimpleName(fieldName));
 		declarationFragment.setInitializer(initializerExpression);
 		FieldDeclaration fieldDeclaration = ast.newFieldDeclaration(declarationFragment);
-		fieldDeclaration.setType(ast.newSimpleType(ast.newName(qualifiedClassName.getName().getIdentifier())));
+		fieldDeclaration.setType(fieldType);
 		listRewrite.insertFirst(fieldDeclaration, null);
 	}
 
@@ -163,12 +174,16 @@ public abstract class AddLoggingHandler extends AbstractHandler {
 			if (currMethod.getMethodState() == MethodStateEnum.MISSING && shouldLog) {
 				VariableDeclarationStatement methodNameStmt = StatementHelper.createMethodNameStatement(currMethod, ast);
 				listRewrite.insertFirst(methodNameStmt, null);
+				Statement previousStmt = methodNameStmt;
 
-				VariableDeclarationStatement isLoggingStmt = StatementHelper.createIsLoggingStatement(ast);
-				listRewrite.insertAfter(isLoggingStmt, methodNameStmt, null);
+				if (currClass.getCallTypeAnnotation().getEffectiveMode() == CallTypeAnnotationEnum.PER_CALL_EVAL) {
+					VariableDeclarationStatement isLoggingStmt = StatementHelper.createIsLoggingStatement(ast);
+					listRewrite.insertAfter(isLoggingStmt, previousStmt, null);
+					previousStmt = isLoggingStmt;
+				}
 
 				IfStatement entryStmt = StatementHelper.createEntryLoggingStatement(ast);
-				listRewrite.insertAfter(entryStmt, isLoggingStmt, null);
+				listRewrite.insertAfter(entryStmt, previousStmt, null);
 
 				parsingHelper.insertExitLogStatement(ast, listRewrite);
 			} else if (currMethod.getMethodState() == MethodStateEnum.WRONG_SIGNATURE) {

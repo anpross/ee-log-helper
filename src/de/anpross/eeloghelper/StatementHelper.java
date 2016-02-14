@@ -23,6 +23,7 @@ import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.StringLiteral;
 import org.eclipse.jdt.core.dom.Type;
+import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 
@@ -61,22 +62,37 @@ public class StatementHelper {
 		return ast.newModifier(Modifier.ModifierKeyword.FINAL_KEYWORD);
 	}
 
+	public static VariableDeclarationExpression createIsLoggingExpresion(AST ast) {
+		VariableDeclarationFragment fragment = createIsLoggingFragment(ast);
+		VariableDeclarationExpression expression = ast.newVariableDeclarationExpression(fragment);
+		return expression;
+	}
+
 	public static VariableDeclarationStatement createIsLoggingStatement(AST ast) {
+		VariableDeclarationFragment fragment = createIsLoggingFragment(ast);
+
+		VariableDeclarationStatement statement = ast.newVariableDeclarationStatement(fragment);
+		statement.modifiers().add(createFinalModifier(ast));
+		statement.setType(ast.newPrimitiveType(PrimitiveType.BOOLEAN));
+		return statement;
+	}
+
+	public static VariableDeclarationFragment createIsLoggingFragment(AST ast) {
 		VariableDeclarationFragment fragment = ast.newVariableDeclarationFragment();
 		fragment.setName(ast.newSimpleName(VARIABLE_NAME_ISLOGGING));
 
+		MethodInvocation methodInvocation = createIsLoggingMethodInvocation(ast);
+		fragment.setInitializer(methodInvocation);
+		return fragment;
+	}
+
+	public static MethodInvocation createIsLoggingMethodInvocation(AST ast) {
 		MethodInvocation methodInvocation = ast.newMethodInvocation();
 		methodInvocation.setExpression(ast.newSimpleName(VARIABLE_NAME_LOGGER));
 		methodInvocation.setName(ast.newSimpleName(METHOD_NAME_ISLOGGABLE));
 		List<SimpleName> arguments = methodInvocation.arguments();
 		arguments.add(ast.newSimpleName(CONST_NAME_DEFAULT_LEVEL));
-		fragment.setInitializer(methodInvocation);
-
-		VariableDeclarationStatement statement = ast.newVariableDeclarationStatement(fragment);
-		statement.modifiers().add(createFinalModifier(ast));
-		statement.setType(ast.newPrimitiveType(PrimitiveType.BOOLEAN));
-
-		return statement;
+		return methodInvocation;
 	}
 
 	public static IfStatement createEntryLoggingStatement(AST ast) {

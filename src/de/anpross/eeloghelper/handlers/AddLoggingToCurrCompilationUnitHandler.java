@@ -14,6 +14,8 @@ public class AddLoggingToCurrCompilationUnitHandler extends AddLoggingHandler {
 		ITextEditor currEditor = parsingHelper.getCurrEditor();
 		ICompilationUnit compilationUnit = parsingHelper.getCurrenEditorsCompUnit(currEditor);
 
+		System.out.println("adding logging to current comilation unit (aka File)");
+
 		try {
 			processCompilationUnit(compilationUnit, null);
 		} catch (Exception e) {

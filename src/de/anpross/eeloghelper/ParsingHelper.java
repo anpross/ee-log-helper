@@ -17,10 +17,16 @@ import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.Expression;
+import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.ImportDeclaration;
+import org.eclipse.jdt.core.dom.Name;
+import org.eclipse.jdt.core.dom.PrimitiveType;
 import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.ReturnStatement;
+import org.eclipse.jdt.core.dom.SimpleName;
+import org.eclipse.jdt.core.dom.SimpleType;
+import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
 import org.eclipse.jdt.core.dom.rewrite.ListRewrite;
 import org.eclipse.jdt.ui.JavaUI;
@@ -161,7 +167,7 @@ public class ParsingHelper {
 	}
 
 	public void addLoggerImportToCompUnit(CompilationUnit parsedCompilationUnit, AST ast, ASTRewrite rewriter) {
-		QualifiedName[] importClasses = { EeLogConstants.getQNameLogger(ast), EeLogConstants.getQNameLevel(ast) };
+		QualifiedName[] importClasses = { EeLogConstants.getQNameLoggerType(ast), EeLogConstants.getQNameLevelType(ast) };
 
 		ListRewrite listRewrite = rewriter.getListRewrite(parsedCompilationUnit, CompilationUnit.IMPORTS_PROPERTY);
 		List<?> originalList = listRewrite.getOriginalList();
@@ -240,5 +246,54 @@ public class ParsingHelper {
 
 	public void moveToStoredEditorPos(ITextEditor currEditor) {
 		currEditor.getSelectionProvider().setSelection(editorPosition.getCurrSelection());
+	}
+
+	public String getIdentifier(Name name) {
+		if (name instanceof QualifiedName) {
+			QualifiedName qName = (QualifiedName) name;
+			return qName.getName().getIdentifier();
+		} else if (name instanceof SimpleName) {
+			SimpleName sName = (SimpleName) name;
+			return sName.getIdentifier();
+		} else {
+			throw new IllegalArgumentException("got unexpected type: " + name.getClass().getCanonicalName());
+		}
+	}
+
+	public SimpleName getSimpleName(Name name) {
+		if (name instanceof SimpleName) {
+			SimpleName sName = (SimpleName) name;
+			return sName;
+		} else if (name instanceof QualifiedName) {
+			QualifiedName qName = (QualifiedName) name;
+			return qName.getName();
+		} else {
+			throw new IllegalArgumentException("got unexpected type: " + name.getClass().getCanonicalName());
+		}
+	}
+
+	public boolean isIdentifierEqual(Name fieldNameA, Name fieldNameB) {
+		return fieldNameA.getFullyQualifiedName().equals(fieldNameB.getFullyQualifiedName());
+	}
+
+	public boolean isTypesEqual(Type typeA, Type typeB) {
+		return getTypeString(typeA).equals(getTypeString(typeB));
+	}
+
+	private String getTypeString(Type typeB) {
+		String fullyQualifiedName = null;
+		if (typeB instanceof SimpleType) {
+			SimpleType sType = (SimpleType) typeB;
+			ITypeBinding resolveBinding = sType.resolveBinding();
+			if (resolveBinding != null) {
+				fullyQualifiedName = resolveBinding.getQualifiedName();
+			} else {
+				fullyQualifiedName = sType.getName().getFullyQualifiedName();
+			}
+		} else if (typeB instanceof PrimitiveType) {
+			PrimitiveType pType = (PrimitiveType) typeB;
+			fullyQualifiedName = pType.getPrimitiveTypeCode().toString();
+		}
+		return fullyQualifiedName;
 	}
 }

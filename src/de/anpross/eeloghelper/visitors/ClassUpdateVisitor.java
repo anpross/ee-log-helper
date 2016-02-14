@@ -75,11 +75,16 @@ public class ClassUpdateVisitor extends ASTVisitor {
 
 	@Override
 	public boolean visit(MethodInvocation node) {
-		Expression expression = node.getExpression();
-		if (expression instanceof SimpleName) {
-			SimpleName name = (SimpleName) expression;
-			if (name.getIdentifier().equals(fieldName)) {
-				currMethodStack.peek().getInvocationsOfCurrMethod().add(node);
+		// method invocations can happen outside of methods,
+		// however there should be no Log statements outside of Methods that need updating.
+		// (declaring static blocks out-of-scope for now)
+		if (!currMethodStack.isEmpty()) {
+			Expression expression = node.getExpression();
+			if (expression instanceof SimpleName) {
+				SimpleName name = (SimpleName) expression;
+				if (name.getIdentifier().equals(fieldName)) {
+					currMethodStack.peek().getInvocationsOfCurrMethod().add(node);
+				}
 			}
 		}
 		return super.visit(node);
