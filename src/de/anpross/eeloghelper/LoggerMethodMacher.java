@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.MethodInvocation;
@@ -21,6 +22,7 @@ public class LoggerMethodMacher {
 	private final static String METHOD_THROWING = "throwing";
 	private final static String SUFFIX_ARRAY = "[]";
 	private final static String TYPE_STRING = String.class.getCanonicalName();
+	private final static String TYPE_LEVEL = Level.class.getCanonicalName();
 	private final static String TYPE_OBJECT = Object.class.getCanonicalName();
 	private final static String TYPE_OBJECT_ARRAY = TYPE_OBJECT + SUFFIX_ARRAY;
 	private final static String TYPE_THROWABLE = Throwable.class.getCanonicalName();
@@ -118,14 +120,17 @@ public class LoggerMethodMacher {
 		matchers.add(new MethodMatcher(METHOD_EXITING, Arrays.asList(TYPE_STRING, TYPE_STRING), 0, 1, 2));
 
 		matchers.add(new MethodMatcher(METHOD_EXITING, Arrays.asList(TYPE_STRING, TYPE_STRING, TYPE_OBJECT), 0, 1, 2));
-		matchers.add(new MethodMatcher(METHOD_LOGP, Arrays.asList(TYPE_STRING, TYPE_STRING), 1, 2, null));
-		matchers.add(new MethodMatcher(METHOD_LOGP, Arrays.asList(TYPE_STRING, TYPE_STRING, TYPE_OBJECT), 1, 2, null));
-		matchers.add(new MethodMatcher(METHOD_LOGP, Arrays.asList(TYPE_STRING, TYPE_STRING, TYPE_OBJECT_ARRAY), 1, 2, null));
-		matchers.add(new MethodMatcher(METHOD_LOGP, Arrays.asList(TYPE_STRING, TYPE_STRING, TYPE_THROWABLE), 1, 2, null));
-		matchers.add(new MethodMatcher(METHOD_LOGRB, Arrays.asList(TYPE_STRING, TYPE_STRING, TYPE_STRING), 1, 2, null));
-		matchers.add(new MethodMatcher(METHOD_LOGRB, Arrays.asList(TYPE_STRING, TYPE_STRING, TYPE_STRING, TYPE_OBJECT), 1, 2, null));
-		matchers.add(new MethodMatcher(METHOD_LOGRB, Arrays.asList(TYPE_STRING, TYPE_STRING, TYPE_STRING, TYPE_OBJECT_ARRAY), 1, 2, null));
-		matchers.add(new MethodMatcher(METHOD_LOGRB, Arrays.asList(TYPE_STRING, TYPE_STRING, TYPE_STRING, TYPE_THROWABLE), 1, 2, null));
+		matchers.add(new MethodMatcher(METHOD_LOGP, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING), 1, 2, null));
+		matchers.add(new MethodMatcher(METHOD_LOGP, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING, TYPE_OBJECT), 1, 2, null));
+		matchers.add(new MethodMatcher(METHOD_LOGP, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING, TYPE_OBJECT_ARRAY), 1, 2, null));
+		matchers.add(new MethodMatcher(METHOD_LOGP, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING, TYPE_THROWABLE), 1, 2, null));
+		matchers.add(new MethodMatcher(METHOD_LOGRB, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING, TYPE_STRING), 1, 2, null));
+		matchers.add(
+				new MethodMatcher(METHOD_LOGRB, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING, TYPE_STRING, TYPE_OBJECT), 1, 2, null));
+		matchers.add(new MethodMatcher(METHOD_LOGRB, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING, TYPE_STRING, TYPE_OBJECT_ARRAY), 1,
+				2, null));
+		matchers.add(new MethodMatcher(METHOD_LOGRB, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING, TYPE_STRING, TYPE_THROWABLE), 1, 2,
+				null));
 		matchers.add(new MethodMatcher(METHOD_THROWING, Arrays.asList(TYPE_STRING, TYPE_STRING, TYPE_THROWABLE), 0, 1, null));
 	}
 

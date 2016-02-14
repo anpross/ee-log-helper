@@ -29,6 +29,7 @@ import de.anpross.eeloghelper.LoggerMethodMacher.MethodMatcher;
 import de.anpross.eeloghelper.ParsingHelper;
 import de.anpross.eeloghelper.StatementHelper;
 import de.anpross.eeloghelper.dtos.ClassUpdateResultDto;
+import de.anpross.eeloghelper.enums.LogStyleEnum;
 import de.anpross.eeloghelper.visitors.ClassUpdateVisitor;
 
 public class UpdateLoggingInCompilationUnitHandler extends AbstractHandler {
@@ -87,12 +88,14 @@ public class UpdateLoggingInCompilationUnitHandler extends AbstractHandler {
 		for (ClassUpdateResultDto methodInvocation : methods) {
 			LoggerMethodMacher.MethodMatcher methodMatcherIfMatching = loggerMatcher.getMethodMatcherIfMatching(methodInvocation);
 			if (methodMatcherIfMatching != null) {
-				fixLogMethod(methodMatcherIfMatching, methodInvocation.getSignature(), rewrite, parsedCompilationUnit.getAST());
+				fixLogMethod(methodMatcherIfMatching, methodInvocation.getSignature(), methodInvocation.getLogStyle(), rewrite,
+						parsedCompilationUnit.getAST());
 			}
 		}
 	}
 
-	private void fixLogMethod(MethodMatcher methodMatcher, String methodSignature, ASTRewrite rewrite, AST ast) {
+	private void fixLogMethod(MethodMatcher methodMatcher, String methodSignature, LogStyleEnum logStyle, ASTRewrite rewrite, AST ast) {
+		System.out.println("fixing method: " + methodSignature + " with logstyle: " + logStyle);
 		MethodInvocation originalInvocation = methodMatcher.getInvocation();
 		MethodInvocation newInvocation = (MethodInvocation) ASTNode.copySubtree(ast, originalInvocation);
 
@@ -101,20 +104,28 @@ public class UpdateLoggingInCompilationUnitHandler extends AbstractHandler {
 		replaceArgument(newInvocation, methodMatcher.getClassParameterPos(), newLogClass);
 
 		// method
-		StringLiteral methodSigLiteral = ast.newStringLiteral();
-		methodSigLiteral.setLiteralValue(methodSignature);
-		replaceArgument(newInvocation, methodMatcher.getMethodParameterPos(), methodSigLiteral);
+		Expression methodNameExpression = getMethodExpression(methodSignature, logStyle, ast);
+		replaceArgument(newInvocation, methodMatcher.getMethodParameterPos(), methodNameExpression);
 
 		// return
 		if (methodMatcher.getPotentialReturnParameterPos() != null) {
 			// number of arguments might have changed, need a whole new method
-			StringLiteral methodSignatureLiteral = ast.newStringLiteral();
-			methodSignatureLiteral.setLiteralValue(methodSignature);
-			newInvocation = StatementHelper.createExitingLoggingInvocation(ast, methodMatcher.getReturnExpression(),
-					methodSignatureLiteral);
-			rewrite.replace(originalInvocation, newInvocation, null);
+			newInvocation = StatementHelper.createExitingLoggingInvocation(ast, methodMatcher.getReturnExpression(), methodNameExpression);
 		}
+		rewrite.replace(originalInvocation, newInvocation, null);
 
+	}
+
+	private Expression getMethodExpression(String methodSignature, LogStyleEnum logStyle, AST ast) {
+		Expression methodNameExpression;
+		if (logStyle == LogStyleEnum.USE_LITERAL) {
+			StringLiteral methodSigLiteral = ast.newStringLiteral();
+			methodSigLiteral.setLiteralValue(methodSignature);
+			methodNameExpression = methodSigLiteral;
+		} else {
+			methodNameExpression = ast.newSimpleName(EeLogConstants.CONST_NAME_LOG_METHOD);
+		}
+		return methodNameExpression;
 	}
 
 	private void replaceArgument(MethodInvocation newInvocation, int argumentIndex, Expression newLogClass) {

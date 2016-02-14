@@ -10,9 +10,13 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SimpleName;
+import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
+import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 
+import de.anpross.eeloghelper.EeLogConstants;
 import de.anpross.eeloghelper.StatementHelper;
 import de.anpross.eeloghelper.dtos.ClassUpdateResultDto;
+import de.anpross.eeloghelper.enums.LogStyleEnum;
 
 /**
  * collects all method invocations to a specific Field. (the LOGGER)
@@ -33,9 +37,11 @@ public class ClassUpdateVisitor extends ASTVisitor {
 		private String signature;
 		private Expression returnExpression;
 		private List<MethodInvocation> invocationsOfCurrMethod;
+		private LogStyleEnum logStyle;
 
 		public MethodStackDto() {
 			invocationsOfCurrMethod = new ArrayList<MethodInvocation>();
+			logStyle = LogStyleEnum.USE_LITERAL;
 		}
 
 		public String getSignature() {
@@ -57,6 +63,15 @@ public class ClassUpdateVisitor extends ASTVisitor {
 		public List<MethodInvocation> getInvocationsOfCurrMethod() {
 			return invocationsOfCurrMethod;
 		}
+
+		public LogStyleEnum getLogStyle() {
+			return logStyle;
+		}
+
+		public void setLogStyle(LogStyleEnum logStyle) {
+			this.logStyle = logStyle;
+		}
+
 	}
 
 	public ClassUpdateVisitor(String fieldName) {
@@ -91,6 +106,19 @@ public class ClassUpdateVisitor extends ASTVisitor {
 	}
 
 	@Override
+	public boolean visit(VariableDeclarationStatement node) {
+		if (!currMethodStack.isEmpty()) {
+			VariableDeclarationFragment firstStatement = StatementHelper.getFirstStatement(node);
+			if (firstStatement.getName().getIdentifier().equals(EeLogConstants.CONST_NAME_LOG_METHOD)) {
+				System.out.println(node);
+				currMethodStack.peek().setLogStyle(LogStyleEnum.USE_VARIABLE);
+			}
+		}
+		// TODO Auto-generated method stub
+		return super.visit(node);
+	}
+
+	@Override
 	public void endVisit(MethodDeclaration node) {
 		MethodStackDto currMethod = currMethodStack.pop();
 		for (MethodInvocation methodInvocation : currMethod.getInvocationsOfCurrMethod()) {
@@ -110,6 +138,7 @@ public class ClassUpdateVisitor extends ASTVisitor {
 		result.setInvocation(invocation);
 		result.setSignature(methodFromStack.getSignature());
 		result.setReturnExpression(methodFromStack.getReturnExpression());
+		result.setLogStyle(methodFromStack.getLogStyle());
 		methods.add(result);
 	}
 

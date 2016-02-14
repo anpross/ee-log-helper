@@ -3,10 +3,13 @@ package de.anpross.eeloghelper.dtos;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 
+import de.anpross.eeloghelper.enums.LogStyleEnum;
+
 public class ClassUpdateResultDto {
 	private MethodInvocation invocation;
 	private String signature;
 	private Expression returnExpression;
+	private LogStyleEnum logStyle;
 
 	public MethodInvocation getInvocation() {
 		return invocation;
@@ -30,5 +33,21 @@ public class ClassUpdateResultDto {
 
 	public void setReturnExpression(Expression returnExpression) {
 		this.returnExpression = returnExpression;
+	}
+
+	public LogStyleEnum getLogStyle() {
+		return logStyle;
+	}
+
+	public void setLogStyle(LogStyleEnum logStyle) {
+		this.logStyle = logStyle;
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder("ClassUpdateResultDto[");
+		sb.append(signature).append(", ");
+		sb.append(invocation).append("]");
+		return sb.toString();
 	}
 }
