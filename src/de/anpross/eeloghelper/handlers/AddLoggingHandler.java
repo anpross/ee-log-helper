@@ -59,8 +59,6 @@ public abstract class AddLoggingHandler extends AbstractHandler {
 
 	public AddLoggingHandler() {
 		parsingHelper = ContextInjectionFactory.make(ParsingHelper.class, diContext);
-		editorPosition = ContextInjectionFactory.make(EditorPositionBean.class, diContext);
-
 	}
 
 	protected void processCompilationUnit(ICompilationUnit unit, IMethod currMethod)

@@ -43,7 +43,6 @@ public class StatementHelper {
 	private static final String CLASS_NAME_LOGGER = "Logger";
 	private static final String CLASS_NAME_STRING = "String";
 	private static final String METHOD_NAME_ISLOGGABLE = "isLoggable";
-	private static final String CLASS_NAME_OBJECT = null;
 
 	public static VariableDeclarationStatement createMethodNameStatement(MethodDto method, AST ast) {
 		VariableDeclarationFragment newDeclarationFragment = ast.newVariableDeclarationFragment();
@@ -300,7 +299,7 @@ public class StatementHelper {
 	}
 
 	public static Expression generateCallExpression(List parameters, AST ast) {
-		ArrayList<SimpleName> parsedParameters = new ArrayList<>();
+		ArrayList<SimpleName> parsedParameters = new ArrayList<SimpleName>();
 		if (parameters != null) {
 			for (Object currParameter : parameters) {
 				if (currParameter instanceof SingleVariableDeclaration) {

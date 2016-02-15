@@ -9,7 +9,16 @@ import org.eclipse.jface.viewers.ISelection;
 @Singleton
 public class EditorPositionBean {
 
+	private static EditorPositionBean bean;
+
 	private ISelection currSelection;
+
+	public static EditorPositionBean getInstance() {
+		if (bean == null) {
+		}
+		bean = new EditorPositionBean();
+		return bean;
+	}
 
 	public ISelection getCurrSelection() {
 		return currSelection;

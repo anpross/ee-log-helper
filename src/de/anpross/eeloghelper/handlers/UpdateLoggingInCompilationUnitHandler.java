@@ -42,7 +42,6 @@ public class UpdateLoggingInCompilationUnitHandler extends AbstractHandler {
 	public UpdateLoggingInCompilationUnitHandler() {
 		parsingHelper = ContextInjectionFactory.make(ParsingHelper.class, diContext);
 		loggerMatcher = ContextInjectionFactory.make(LoggerMethodMacher.class, diContext);
-
 	}
 
 	@Override
