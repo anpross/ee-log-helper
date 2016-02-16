@@ -92,4 +92,12 @@
 			</command>
 		</menuContribution>
 	</extension>
+ <extension
+       point="org.eclipse.ui.preferencePages">
+    <page
+          class="de.anpross.eeloghelper.PreferencePage"
+          id="EeLogHelper.preferencePage"
+          name="EE Log Helper">
+    </page>
+ </extension>
 </plugin>
