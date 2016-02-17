@@ -16,14 +16,11 @@ import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
-import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ITypeBinding;
-import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.ImportDeclaration;
 import org.eclipse.jdt.core.dom.Name;
 import org.eclipse.jdt.core.dom.PrimitiveType;
 import org.eclipse.jdt.core.dom.QualifiedName;
-import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SimpleType;
 import org.eclipse.jdt.core.dom.Type;
@@ -141,29 +138,6 @@ public class ParsingHelper {
 		} else {
 			return false;
 		}
-	}
-
-	public void insertExitLogStatement(AST ast, ListRewrite listRewrite) {
-		List<?> originalStatements = listRewrite.getOriginalList();
-		if (lastStatementIsReturnStatement(originalStatements)) {
-			ReturnStatement returnStatement = (ReturnStatement) originalStatements.get(originalStatements.size() - 1);
-			Expression returnExpression = returnStatement.getExpression();
-			IfStatement exitStmt = StatementHelper.createExitingLoggingIfStatement(ast, returnExpression);
-			listRewrite.insertBefore(exitStmt, returnStatement, null);
-		} else {
-			IfStatement exitStmt = StatementHelper.createExitingLoggingIfStatement(ast, null);
-			listRewrite.insertLast(exitStmt, null);
-		}
-	}
-
-	private boolean lastStatementIsReturnStatement(List<?> originalStatements) {
-		if (originalStatements.size() >= 1) {
-			Object lastStatement = originalStatements.get(originalStatements.size() - 1);
-			if (lastStatement instanceof ReturnStatement) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	public void addLoggerImportToCompUnit(CompilationUnit parsedCompilationUnit, AST ast, ASTRewrite rewriter) {

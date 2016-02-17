@@ -4,13 +4,15 @@ import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
+import de.anpross.eeloghelper.enums.LogStyleEnum;
+
 /**
  * The activator class controls the plug-in life cycle
  */
 public class Activator extends AbstractUIPlugin {
 
 	// The plug-in ID
-	public static final String PLUGIN_ID = "EeLogHelper"; //$NON-NLS-1$
+	public static final String PLUGIN_ID = "de.anpross.eeloghelper"; //$NON-NLS-1$
 
 	// The shared instance
 	private static Activator plugin;
@@ -30,6 +32,10 @@ public class Activator extends AbstractUIPlugin {
 	public void start(BundleContext context) throws Exception {
 		super.start(context);
 		plugin = this;
+
+		getPreferenceStore().setDefault(PreferencePage.PREF_LOG_STYLE, LogStyleEnum.USE_VARIABLE.name());
+		getPreferenceStore().setDefault(PreferencePage.PREF_METHOD_VAR_NAME, "logMethod");
+		getPreferenceStore().setDefault(PreferencePage.PREF_IS_LOGGING_VAR_NAME, "isLogging");
 	}
 
 	/*

@@ -20,11 +20,11 @@ public class LoggerMethodMacher {
 	private final static String METHOD_LOGP = "logp";
 	private final static String METHOD_LOGRB = "logrb";
 	private final static String METHOD_THROWING = "throwing";
-	private final static String SUFFIX_ARRAY = "[]";
+	private final static String PREFIX_ARRAY = "[L";
 	private final static String TYPE_STRING = String.class.getCanonicalName();
 	private final static String TYPE_LEVEL = Level.class.getCanonicalName();
 	private final static String TYPE_OBJECT = Object.class.getCanonicalName();
-	private final static String TYPE_OBJECT_ARRAY = TYPE_OBJECT + SUFFIX_ARRAY;
+	private final static String TYPE_OBJECT_ARRAY = PREFIX_ARRAY + TYPE_OBJECT;
 	private final static String TYPE_THROWABLE = Throwable.class.getCanonicalName();
 
 	public class MethodMatcher {
@@ -62,9 +62,10 @@ public class LoggerMethodMacher {
 			int currArgument = 0;
 			for (Expression currRealArgument : realArguments) {
 				String realArgumentTypeName = currRealArgument.resolveTypeBinding().getQualifiedName();
+				String realArgumentTypeNameClass = getClassNameForBindingName(realArgumentTypeName);
 				String matcherArgumentType = arguments.get(currArgument);
 				try {
-					if (!Class.forName(matcherArgumentType).isAssignableFrom(Class.forName(realArgumentTypeName))) {
+					if (!Class.forName(matcherArgumentType).isAssignableFrom(Class.forName(realArgumentTypeNameClass))) {
 						return false;
 					}
 				} catch (ClassNotFoundException e) {
@@ -74,6 +75,14 @@ public class LoggerMethodMacher {
 			}
 			this.setInvocation(invocation);
 			return true;
+		}
+
+		private String getClassNameForBindingName(String realArgumentTypeName) {
+			if (realArgumentTypeName.endsWith("[]")) {
+				return realArgumentTypeName.substring(0, realArgumentTypeName.length() - 2);
+			} else {
+				return realArgumentTypeName;
+			}
 		}
 
 		public Integer getClassParameterPos() {

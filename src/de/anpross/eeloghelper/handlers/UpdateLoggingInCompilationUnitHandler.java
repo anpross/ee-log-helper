@@ -140,5 +140,4 @@ public class UpdateLoggingInCompilationUnitHandler extends AbstractHandler {
 		newInvocation.arguments().remove(argumentIndex);
 		newInvocation.arguments().add(argumentIndex, newLogClass);
 	}
-
 }

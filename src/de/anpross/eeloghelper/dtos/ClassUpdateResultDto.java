@@ -61,5 +61,4 @@ public class ClassUpdateResultDto {
 		sb.append(invocation).append("]");
 		return sb.toString();
 	}
-
 }

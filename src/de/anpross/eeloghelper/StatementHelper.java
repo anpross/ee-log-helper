@@ -20,6 +20,7 @@ import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.PrimitiveType;
 import org.eclipse.jdt.core.dom.QualifiedName;
+import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
@@ -28,9 +29,11 @@ import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
+import org.eclipse.jdt.core.dom.rewrite.ListRewrite;
 
 import de.anpross.eeloghelper.dtos.MethodDto;
 import de.anpross.eeloghelper.enums.EntryExitEnum;
+import de.anpross.eeloghelper.enums.LogStyleEnum;
 
 @SuppressWarnings("unchecked")
 public class StatementHelper {
@@ -48,9 +51,7 @@ public class StatementHelper {
 		VariableDeclarationFragment newDeclarationFragment = ast.newVariableDeclarationFragment();
 		newDeclarationFragment.setName(ast.newSimpleName(CONST_NAME_LOG_METHOD));
 
-		StringLiteral methodSignature = ast.newStringLiteral();
-		methodSignature.setLiteralValue(method.getSignatureString());
-		newDeclarationFragment.setInitializer(methodSignature);
+		newDeclarationFragment.setInitializer(getStringLiteral(method.getSignatureString(), ast));
 
 		VariableDeclarationStatement newDeclaration = ast.newVariableDeclarationStatement(newDeclarationFragment);
 
@@ -97,8 +98,8 @@ public class StatementHelper {
 		return methodInvocation;
 	}
 
-	public static IfStatement createEntryLoggingStatement(AST ast) {
-		List<Expression> arguments = createEntryLoggingArguments(ast, ast.newSimpleName(CONST_NAME_LOG_METHOD));
+	public static IfStatement createEntryLoggingStatement(AST ast, Expression methodNameExpression) {
+		List<Expression> arguments = createEntryLoggingArguments(ast, methodNameExpression);
 		MethodInvocation invocation = createEntryLoggingInvocation(ast, arguments);
 		ExpressionStatement expression = ast.newExpressionStatement(invocation);
 		return createIfLoggingStatement(ast, expression);
@@ -123,20 +124,16 @@ public class StatementHelper {
 		return arguments;
 	}
 
-	public static IfStatement createEntryLoggingIfStatement(AST ast, Expression returnExpression) {
-		MethodInvocation invocation = createExitingLoggingInvocation(ast, returnExpression);
+	public static IfStatement createEntryLoggingIfStatement(AST ast, Expression returnExpression, Expression methodNameExpression) {
+		MethodInvocation invocation = createExitingLoggingInvocation(ast, returnExpression, methodNameExpression);
 		ExpressionStatement expression = ast.newExpressionStatement(invocation);
 		return createIfLoggingStatement(ast, expression);
 	}
 
-	public static IfStatement createExitingLoggingIfStatement(AST ast, Expression returnExpression) {
-		MethodInvocation invocation = createExitingLoggingInvocation(ast, returnExpression);
+	public static IfStatement createExitingLoggingIfStatement(AST ast, Expression returnExpression, Expression methodNameExpression) {
+		MethodInvocation invocation = createExitingLoggingInvocation(ast, returnExpression, methodNameExpression);
 		ExpressionStatement expression = ast.newExpressionStatement(invocation);
 		return createIfLoggingStatement(ast, expression);
-	}
-
-	public static MethodInvocation createExitingLoggingInvocation(AST ast, Expression returnExpression) {
-		return createExitingLoggingInvocation(ast, returnExpression, ast.newSimpleName(CONST_NAME_LOG_METHOD));
 	}
 
 	public static MethodInvocation createExitingLoggingInvocation(AST ast, Expression returnExpression, Expression methodSignature) {
@@ -240,9 +237,7 @@ public class StatementHelper {
 	}
 
 	public static StringLiteral createClassNameStringLiteral(AbstractTypeDeclaration currClass, AST ast) {
-		StringLiteral stringLiteral = ast.newStringLiteral();
-		stringLiteral.setLiteralValue(currClass.getName().getIdentifier());
-		return stringLiteral;
+		return getStringLiteral(currClass.getName().getIdentifier(), ast);
 	}
 
 	public static Expression createLogLevelStatement(Level finer, AST ast) {
@@ -324,4 +319,67 @@ public class StatementHelper {
 		return null;
 	}
 
+	public static void insertStatementsToListRewrite(ListRewrite listRewrite, List<Statement> statements) {
+		if (!statements.isEmpty()) {
+			boolean isFirst = true;
+			Statement previousStmt = null;
+			for (Statement currStatement : statements) {
+				if (isFirst) {
+					listRewrite.insertFirst(currStatement, null);
+				} else {
+					listRewrite.insertAfter(currStatement, previousStmt, null);
+				}
+				isFirst = false;
+				previousStmt = currStatement;
+			}
+		}
+	}
+
+	public static void insertExitLogStatement(AST ast, LogStyleEnum logStyle, MethodDto currMethod, ListRewrite listRewrite) {
+		Expression methodNameExpression = getMethodNameExpression(ast, logStyle, currMethod);
+		List<?> originalStatements = listRewrite.getOriginalList();
+		if (lastStatementIsReturnStatement(originalStatements)) {
+			ReturnStatement returnStatement = (ReturnStatement) originalStatements.get(originalStatements.size() - 1);
+			Expression returnExpression = returnStatement.getExpression();
+			IfStatement exitStmt = StatementHelper.createExitingLoggingIfStatement(ast, returnExpression, methodNameExpression);
+			listRewrite.insertBefore(exitStmt, returnStatement, null);
+		} else {
+			IfStatement exitStmt = StatementHelper.createExitingLoggingIfStatement(ast, null, methodNameExpression);
+			listRewrite.insertLast(exitStmt, null);
+		}
+	}
+
+	public static void insertEntryLogStatement(AST ast, LogStyleEnum logStyle, MethodDto currMethod, List<Statement> statements) {
+		Expression methodNameExpression = getMethodNameExpression(ast, logStyle, currMethod);
+		IfStatement entryStmt = StatementHelper.createEntryLoggingStatement(ast, methodNameExpression);
+		statements.add(entryStmt);
+	}
+
+	private static Expression getMethodNameExpression(AST ast, LogStyleEnum logStyle, MethodDto currMethod) {
+		Expression methodNameExpression;
+		if (LogStyleEnum.USE_LITERAL.equals(logStyle)) {
+			methodNameExpression = StatementHelper.getStringLiteral(currMethod.getSignatureString(), ast);
+		} else if (LogStyleEnum.USE_VARIABLE.equals(logStyle)) {
+			methodNameExpression = ast.newSimpleName(EeLogConstants.CONST_NAME_LOG_METHOD);
+		} else {
+			throw new IllegalStateException("LogStyleEnum has invalid value");
+		}
+		return methodNameExpression;
+	}
+
+	private static boolean lastStatementIsReturnStatement(List<?> originalStatements) {
+		if (originalStatements.size() >= 1) {
+			Object lastStatement = originalStatements.get(originalStatements.size() - 1);
+			if (lastStatement instanceof ReturnStatement) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public static StringLiteral getStringLiteral(String value, AST ast) {
+		StringLiteral newStringLiteral = ast.newStringLiteral();
+		newStringLiteral.setLiteralValue(value);
+		return newStringLiteral;
+	}
 }

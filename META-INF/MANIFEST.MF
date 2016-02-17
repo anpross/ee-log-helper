@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: EeLogHelper
-Bundle-SymbolicName: EeLogHelper;singleton:=true
+Bundle-SymbolicName: de.anpross.eeloghelper;singleton:=true
 Bundle-Version: 1.0.0
 Bundle-Activator: de.anpross.eeloghelper.Activator
 Bundle-Vendor: anpross.de
@@ -15,6 +15,7 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.ui.workbench.texteditor;bundle-version="3.7",
  org.eclipse.ui.editors;bundle-version="3.7.0",
  org.eclipse.e4.core.contexts;bundle-version="1.2.0",
- org.eclipse.e4.core.di;bundle-version="1.2.0"
+ org.eclipse.e4.core.di;bundle-version="1.2.0",
+ org.eclipse.e4.core.di.extensions;bundle-version="0.13.0"
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Bundle-ActivationPolicy: lazy

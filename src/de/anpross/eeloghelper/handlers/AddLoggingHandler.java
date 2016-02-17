@@ -1,5 +1,6 @@
 package de.anpross.eeloghelper.handlers;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -17,7 +18,6 @@ import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
-import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.LineComment;
 import org.eclipse.jdt.core.dom.Name;
 import org.eclipse.jdt.core.dom.PrimitiveType;
@@ -33,14 +33,17 @@ import org.eclipse.jface.text.Document;
 import org.eclipse.text.edits.MalformedTreeException;
 import org.eclipse.text.edits.TextEdit;
 
+import de.anpross.eeloghelper.Activator;
 import de.anpross.eeloghelper.EditorPositionBean;
 import de.anpross.eeloghelper.EeLogConstants;
 import de.anpross.eeloghelper.ParsingHelper;
+import de.anpross.eeloghelper.PreferencePage;
 import de.anpross.eeloghelper.StatementHelper;
 import de.anpross.eeloghelper.dtos.ClassDto;
 import de.anpross.eeloghelper.dtos.LineCommentDto;
 import de.anpross.eeloghelper.dtos.MethodDto;
 import de.anpross.eeloghelper.enums.CallTypeAnnotationEnum;
+import de.anpross.eeloghelper.enums.LogStyleEnum;
 import de.anpross.eeloghelper.enums.MethodStateEnum;
 import de.anpross.eeloghelper.visitors.ClassVisitor;
 import de.anpross.eeloghelper.visitors.LineCommentVisitor;
@@ -112,6 +115,19 @@ public abstract class AddLoggingHandler extends AbstractHandler {
 		}
 	}
 
+	/**
+	 *
+	 * @param rewrite
+	 *            the ASTRewrite object
+	 * @param currClass
+	 *            the JDT DOM Class object
+	 * @param methods
+	 *            the methods which to add EE-logs to
+	 * @param classVariables
+	 *            required class variables
+	 * @param classDto
+	 *            class related information
+	 */
 	private void writeClassToRewriter(ASTRewrite rewrite, AbstractTypeDeclaration currClass, List<MethodDto> methods,
 			List<FieldDeclaration> classVariables, ClassDto classDto) {
 		AST ast = currClass.getAST();
@@ -164,26 +180,32 @@ public abstract class AddLoggingHandler extends AbstractHandler {
 	}
 
 	private void writeMethodsToRewriter(List<MethodDto> methods, ClassDto currClass, ASTRewrite rewrite, AST ast) {
+		String logStyleString = Activator.getDefault().getPreferenceStore().getString(PreferencePage.PREF_LOG_STYLE);
+		System.out.println("logstyle: " + logStyleString);
+		LogStyleEnum logStyle = LogStyleEnum.valueOf(logStyleString);
+
 		for (MethodDto currMethod : methods) {
 			Block methodBlock = currMethod.getMethodBlock();
 			ListRewrite listRewrite = rewrite.getListRewrite(methodBlock, Block.STATEMENTS_PROPERTY);
 
 			boolean shouldLog = parsingHelper.isLoggingRequired(currMethod, currClass);
 			if (currMethod.getMethodState() == MethodStateEnum.MISSING && shouldLog) {
-				VariableDeclarationStatement methodNameStmt = StatementHelper.createMethodNameStatement(currMethod, ast);
-				listRewrite.insertFirst(methodNameStmt, null);
-				Statement previousStmt = methodNameStmt;
+				List<Statement> statements = new ArrayList<Statement>();
+				if (logStyle.equals(LogStyleEnum.USE_VARIABLE)) {
+					VariableDeclarationStatement methodNameStmt = StatementHelper.createMethodNameStatement(currMethod, ast);
+					statements.add(methodNameStmt);
+				}
 
 				if (currClass.getCallTypeAnnotation().getEffectiveMode() == CallTypeAnnotationEnum.PER_CALL_EVAL) {
 					VariableDeclarationStatement isLoggingStmt = StatementHelper.createIsLoggingStatement(ast);
-					listRewrite.insertAfter(isLoggingStmt, previousStmt, null);
-					previousStmt = isLoggingStmt;
+					statements.add(isLoggingStmt);
 				}
 
-				IfStatement entryStmt = StatementHelper.createEntryLoggingStatement(ast);
-				listRewrite.insertAfter(entryStmt, previousStmt, null);
+				StatementHelper.insertEntryLogStatement(ast, logStyle, currMethod, statements);
 
-				parsingHelper.insertExitLogStatement(ast, listRewrite);
+				StatementHelper.insertStatementsToListRewrite(listRewrite, statements);
+
+				StatementHelper.insertExitLogStatement(ast, logStyle, currMethod, listRewrite);
 			} else if (currMethod.getMethodState() == MethodStateEnum.WRONG_SIGNATURE) {
 				VariableDeclarationStatement firstStatement = StatementHelper.getFirstVariableDeclarationStatementOfBlock(methodBlock);
 				VariableDeclarationStatement replacementStatement = StatementHelper.createMethodNameStatement(currMethod, ast);
