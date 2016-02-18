@@ -37,26 +37,16 @@ import de.anpross.eeloghelper.enums.LogStyleEnum;
 
 @SuppressWarnings("unchecked")
 public class StatementHelper {
-	private static final String CONST_NAME_LOG_CLASS = "LOG_CLASS";
-	private static final String CONST_NAME_LOG_METHOD = "LOG_METHOD";
-	private static final String CONST_NAME_DEFAULT_LEVEL = "DEFAULT_LEVEL";
-	private static final String VARIABLE_NAME_ISLOGGING = "isLogging";
-	private static final String VARIABLE_NAME_LOGGER = "LOGGER";
-	private static final String PACKAGE_NAME_LOGGER = "java.util.logging";
-	private static final String CLASS_NAME_LOGGER = "Logger";
-	private static final String CLASS_NAME_STRING = "String";
-	private static final String METHOD_NAME_ISLOGGABLE = "isLoggable";
-
 	public static VariableDeclarationStatement createMethodNameStatement(MethodDto method, AST ast) {
 		VariableDeclarationFragment newDeclarationFragment = ast.newVariableDeclarationFragment();
-		newDeclarationFragment.setName(ast.newSimpleName(CONST_NAME_LOG_METHOD));
+		newDeclarationFragment.setName(EeLogConstants.getLogMethodName(ast));
 
 		newDeclarationFragment.setInitializer(getStringLiteral(method.getSignatureString(), ast));
 
 		VariableDeclarationStatement newDeclaration = ast.newVariableDeclarationStatement(newDeclarationFragment);
 
 		newDeclaration.modifiers().add(createFinalModifier(ast));
-		newDeclaration.setType(ast.newSimpleType(ast.newSimpleName(CLASS_NAME_STRING)));
+		newDeclaration.setType(ast.newSimpleType(ast.newSimpleName(EeLogConstants.CLASS_NAME_STRING)));
 
 		return newDeclaration;
 	}
@@ -82,7 +72,7 @@ public class StatementHelper {
 
 	public static VariableDeclarationFragment createIsLoggingFragment(AST ast) {
 		VariableDeclarationFragment fragment = ast.newVariableDeclarationFragment();
-		fragment.setName(ast.newSimpleName(VARIABLE_NAME_ISLOGGING));
+		fragment.setName(EeLogConstants.getIsLoggingName(ast));
 
 		MethodInvocation methodInvocation = createIsLoggingMethodInvocation(ast);
 		fragment.setInitializer(methodInvocation);
@@ -91,10 +81,10 @@ public class StatementHelper {
 
 	public static MethodInvocation createIsLoggingMethodInvocation(AST ast) {
 		MethodInvocation methodInvocation = ast.newMethodInvocation();
-		methodInvocation.setExpression(ast.newSimpleName(VARIABLE_NAME_LOGGER));
-		methodInvocation.setName(ast.newSimpleName(METHOD_NAME_ISLOGGABLE));
+		methodInvocation.setExpression(EeLogConstants.getLoggerName(ast));
+		methodInvocation.setName(ast.newSimpleName(EeLogConstants.METHOD_NAME_ISLOGGABLE));
 		List<SimpleName> arguments = methodInvocation.arguments();
-		arguments.add(ast.newSimpleName(CONST_NAME_DEFAULT_LEVEL));
+		arguments.add(EeLogConstants.getDefaultLevelName(ast));
 		return methodInvocation;
 	}
 
@@ -119,7 +109,7 @@ public class StatementHelper {
 
 	private static List<Expression> createEntryLoggingArguments(AST ast, Expression methodName) {
 		List<Expression> arguments = new ArrayList<Expression>();
-		arguments.add(ast.newSimpleName(CONST_NAME_LOG_CLASS));
+		arguments.add(EeLogConstants.getLogClassName(ast));
 		arguments.add(methodName);
 		return arguments;
 	}
@@ -144,7 +134,7 @@ public class StatementHelper {
 
 	public static List<Expression> createExitingLoggingArguments(AST ast, Expression returnExpression, Expression methodSignature) {
 		List<Expression> arguments = new ArrayList<Expression>();
-		arguments.add(ast.newSimpleName(CONST_NAME_LOG_CLASS));
+		arguments.add(EeLogConstants.getLogClassName(ast));
 		arguments.add(methodSignature);
 		if (returnExpression != null) {
 			arguments.add(returnExpression);
@@ -154,7 +144,7 @@ public class StatementHelper {
 
 	private static MethodInvocation createEntryExitLoggingStatement(AST ast, EntryExitEnum entryExit, List<Expression> arguments) {
 		MethodInvocation invocation = ast.newMethodInvocation();
-		invocation.setExpression(ast.newName(VARIABLE_NAME_LOGGER));
+		invocation.setExpression(EeLogConstants.getLoggerName(ast));
 		invocation.setName(ast.newSimpleName(entryExit.getMethodName()));
 
 		List<Expression> invocationArguments = invocation.arguments();
@@ -171,7 +161,7 @@ public class StatementHelper {
 
 	private static IfStatement createIfLoggingStatement(AST ast, Statement thenStatement) {
 		IfStatement statement = ast.newIfStatement();
-		statement.setExpression(ast.newSimpleName(VARIABLE_NAME_ISLOGGING));
+		statement.setExpression(EeLogConstants.getIsLoggingName(ast));
 		Block thenBlock = ast.newBlock();
 		thenBlock.statements().add(thenStatement);
 		statement.setThenStatement(thenBlock);
@@ -191,7 +181,7 @@ public class StatementHelper {
 			Type type = varDeclStatement.getType();
 			if (type.resolveBinding().getQualifiedName().equals("java.lang.String")
 					&& StatementHelper.hasFinalModifier(varDeclStatement.modifiers())
-					&& StatementHelper.getVariableName(varDeclStatement).equals(CONST_NAME_LOG_METHOD)) {
+					&& StatementHelper.getVariableName(varDeclStatement).equals(EeLogConstants.getLogMethod())) {
 				return true;
 			}
 		}
@@ -230,9 +220,9 @@ public class StatementHelper {
 
 	public static MethodInvocation createLoggerStatement(AST ast) {
 		MethodInvocation invocation = ast.newMethodInvocation();
-		invocation.setExpression(ast.newQualifiedName(ast.newName(PACKAGE_NAME_LOGGER), ast.newSimpleName(CLASS_NAME_LOGGER)));
+		invocation.setExpression(EeLogConstants.getQNameLoggerType(ast));
 		invocation.setName(ast.newSimpleName(EeLogConstants.METHOD_NAME_GETLOGGER));
-		invocation.arguments().add(ast.newSimpleName(CONST_NAME_LOG_CLASS));
+		invocation.arguments().add(EeLogConstants.getLogClassName(ast));
 		return invocation;
 	}
 
@@ -360,7 +350,7 @@ public class StatementHelper {
 		if (LogStyleEnum.USE_LITERAL.equals(logStyle)) {
 			methodNameExpression = StatementHelper.getStringLiteral(currMethod.getSignatureString(), ast);
 		} else if (LogStyleEnum.USE_VARIABLE.equals(logStyle)) {
-			methodNameExpression = ast.newSimpleName(EeLogConstants.CONST_NAME_LOG_METHOD);
+			methodNameExpression = EeLogConstants.getLogMethodName(ast);
 		} else {
 			throw new IllegalStateException("LogStyleEnum has invalid value");
 		}

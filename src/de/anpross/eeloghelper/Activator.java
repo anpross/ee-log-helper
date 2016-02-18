@@ -33,9 +33,16 @@ public class Activator extends AbstractUIPlugin {
 		super.start(context);
 		plugin = this;
 
+		setDefaults();
+	}
+
+	private void setDefaults() {
 		getPreferenceStore().setDefault(PreferencePage.PREF_LOG_STYLE, LogStyleEnum.USE_VARIABLE.name());
-		getPreferenceStore().setDefault(PreferencePage.PREF_METHOD_VAR_NAME, "logMethod");
-		getPreferenceStore().setDefault(PreferencePage.PREF_IS_LOGGING_VAR_NAME, "isLogging");
+		getPreferenceStore().setDefault(PreferencePage.PREF_LOG_METHOD_VAR_NAME, PreferencePage.PREF_LOG_METHOD_VAR_DEFAULT);
+		getPreferenceStore().setDefault(PreferencePage.PREF_IS_LOGGING_VAR_NAME, PreferencePage.PREF_IS_LOGGING_VAR_DEFAULT);
+		getPreferenceStore().setDefault(PreferencePage.PREF_LOG_CLASS_VAR_NAME, PreferencePage.PREF_LOG_CLASS_VAR_DEFAULT);
+		getPreferenceStore().setDefault(PreferencePage.PREF_LOGGER_VAR_NAME, PreferencePage.PREF_LOGGER_VAR_DEFAULT);
+		getPreferenceStore().setDefault(PreferencePage.PREF_DEFAULT_LEVEL_VAR_NAME, PreferencePage.PREF_DEFAULT_LEVEL_VAR_DEFAULT);
 	}
 
 	/*

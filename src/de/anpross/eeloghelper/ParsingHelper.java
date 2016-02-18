@@ -246,6 +246,20 @@ public class ParsingHelper {
 		}
 	}
 
+	public Type getUnqualifiedType(Type possibleQualifiedType, AST ast) {
+
+		if (possibleQualifiedType instanceof SimpleType) {
+			SimpleType simpleType = (SimpleType) possibleQualifiedType;
+			Name name = simpleType.getName();
+			if (name instanceof QualifiedName) {
+				QualifiedName qName = (QualifiedName) name;
+				SimpleName newSName = ast.newSimpleName(qName.getName().getIdentifier());
+				return ast.newSimpleType(newSName);
+			}
+		}
+		return possibleQualifiedType;
+	}
+
 	public boolean isIdentifierEqual(Name fieldNameA, Name fieldNameB) {
 		return fieldNameA.getFullyQualifiedName().equals(fieldNameB.getFullyQualifiedName());
 	}

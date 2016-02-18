@@ -79,7 +79,7 @@ public class UpdateLoggingInCompilationUnitHandler extends AbstractHandler {
 	}
 
 	private void updateClass(ASTRewrite rewrite, AbstractTypeDeclaration currClass, CompilationUnit parsedCompilationUnit) {
-		ClassUpdateVisitor visitor = new ClassUpdateVisitor(EeLogConstants.VARIABLE_NAME_LOGGER);
+		ClassUpdateVisitor visitor = new ClassUpdateVisitor(EeLogConstants.getLogger());
 		parsedCompilationUnit.accept(visitor);
 
 		List<ClassUpdateResultDto> methods = visitor.getMethods();
@@ -102,7 +102,7 @@ public class UpdateLoggingInCompilationUnitHandler extends AbstractHandler {
 		MethodInvocation newInvocation = (MethodInvocation) ASTNode.copySubtree(ast, originalInvocation);
 
 		// class
-		SimpleName newLogClass = ast.newSimpleName(EeLogConstants.CONST_NAME_LOG_CLASS);
+		SimpleName newLogClass = EeLogConstants.getLogClassName(ast);
 		replaceArgument(newInvocation, methodMatcher.getClassParameterPos(), newLogClass);
 
 		// method
@@ -131,7 +131,7 @@ public class UpdateLoggingInCompilationUnitHandler extends AbstractHandler {
 			methodSigLiteral.setLiteralValue(methodSignature);
 			methodNameExpression = methodSigLiteral;
 		} else {
-			methodNameExpression = ast.newSimpleName(EeLogConstants.CONST_NAME_LOG_METHOD);
+			methodNameExpression = EeLogConstants.getLogMethodName(ast);
 		}
 		return methodNameExpression;
 	}

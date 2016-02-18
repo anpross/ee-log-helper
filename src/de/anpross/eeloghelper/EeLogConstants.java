@@ -6,18 +6,14 @@ import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.Type;
 
 public class EeLogConstants {
-	public static final String CONST_NAME_LOG_CLASS = "LOG_CLASS";
-	public static final String CONST_NAME_LOG_METHOD = "LOG_METHOD";
-	public static final String CONST_NAME_DEFAULT_LEVEL = "DEFAULT_LEVEL";
-	public static final String VARIABLE_NAME_ISLOGGING = "isLogging";
-	public static final String VARIABLE_NAME_LOGGER = "LOGGER";
 	public static final String PACKAGE_NAME_LANG = "java.lang";
 	public static final String PACKAGE_NAME_LOGGING = "java.util.logging";
 	public static final String CLASS_NAME_LOGGER = "Logger";
 	public static final String CLASS_NAME_STRING = "String";
 	public static final String CLASS_NAME_LEVEL = "Level";
-	public static final String METHOD_NAME_ISLOGGABLE = "isLoggable";
+	public static final String CLASS_NAME_OBJECT = "Object";
 	public static final String METHOD_NAME_GETLOGGER = "getLogger";
+	public static final String METHOD_NAME_ISLOGGABLE = "isLoggable";
 
 	public static QualifiedName getQNameLoggerType(AST ast) {
 		return StatementHelper.getQName(EeLogConstants.PACKAGE_NAME_LOGGING, EeLogConstants.CLASS_NAME_LOGGER, ast);
@@ -29,6 +25,10 @@ public class EeLogConstants {
 
 	public static QualifiedName getQNameStringType(AST ast) {
 		return StatementHelper.getQName(EeLogConstants.PACKAGE_NAME_LANG, EeLogConstants.CLASS_NAME_STRING, ast);
+	}
+
+	public static QualifiedName getQNameObjectType(AST ast) {
+		return StatementHelper.getQName(EeLogConstants.PACKAGE_NAME_LANG, EeLogConstants.CLASS_NAME_OBJECT, ast);
 	}
 
 	public static Type getTypeString(AST ast) {
@@ -43,19 +43,39 @@ public class EeLogConstants {
 		return ast.newSimpleType(getQNameLevelType(ast));
 	}
 
-	public static SimpleName getNameLogger(AST ast) {
-		return ast.newSimpleName(EeLogConstants.VARIABLE_NAME_LOGGER);
+	public static Type getTypeObject(AST ast) {
+		return ast.newSimpleType(getQNameObjectType(ast));
 	}
 
 	public static SimpleName getLoggerName(AST ast) {
-		return ast.newSimpleName(EeLogConstants.VARIABLE_NAME_LOGGER);
+		return ast.newSimpleName(getLogger());
+	}
+
+	public static String getLogger() {
+		return getPreference(PreferencePage.PREF_LOGGER_VAR_NAME);
 	}
 
 	public static SimpleName getLogClassName(AST ast) {
-		return ast.newSimpleName(EeLogConstants.CONST_NAME_LOG_CLASS);
+		return ast.newSimpleName(getPreference(PreferencePage.PREF_LOG_CLASS_VAR_NAME));
 	}
 
 	public static SimpleName getDefaultLevelName(AST ast) {
-		return ast.newSimpleName(EeLogConstants.CONST_NAME_DEFAULT_LEVEL);
+		return ast.newSimpleName(getPreference(PreferencePage.PREF_DEFAULT_LEVEL_VAR_NAME));
+	}
+
+	public static SimpleName getLogMethodName(AST ast) {
+		return ast.newSimpleName(getLogMethod());
+	}
+
+	public static String getLogMethod() {
+		return getPreference(PreferencePage.PREF_LOG_METHOD_VAR_NAME);
+	}
+
+	public static SimpleName getIsLoggingName(AST ast) {
+		return ast.newSimpleName(getPreference(PreferencePage.PREF_IS_LOGGING_VAR_NAME));
+	}
+
+	private static String getPreference(String preference) {
+		return Activator.getDefault().getPreferenceStore().getString(preference);
 	}
 }

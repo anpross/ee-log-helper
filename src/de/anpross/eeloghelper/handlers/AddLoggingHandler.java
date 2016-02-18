@@ -135,9 +135,8 @@ public abstract class AddLoggingHandler extends AbstractHandler {
 		if (classDto.getCallTypeAnnotation().equals(CallTypeAnnotationEnum.PER_INSTANCE_EVAL)) {
 			System.out.println("we are in PER-INSTANCE mode");
 			Expression creteIsLoggingExpression = StatementHelper.createIsLoggingMethodInvocation(ast);
-			addClassFieldAsFirstIfMissing(ast.newPrimitiveType(PrimitiveType.BOOLEAN),
-					ast.newSimpleName(EeLogConstants.VARIABLE_NAME_ISLOGGING), classVariables, creteIsLoggingExpression, ast, rewrite,
-					currClass);
+			addClassFieldAsFirstIfMissing(ast.newPrimitiveType(PrimitiveType.BOOLEAN), EeLogConstants.getIsLoggingName(ast), classVariables,
+					creteIsLoggingExpression, ast, rewrite, currClass);
 		}
 
 		addClassFieldAsFirstIfMissing(EeLogConstants.getLoggerType(ast), EeLogConstants.getLoggerName(ast), classVariables,
@@ -175,7 +174,7 @@ public abstract class AddLoggingHandler extends AbstractHandler {
 		declarationFragment.setName(parsingHelper.getSimpleName(fieldName));
 		declarationFragment.setInitializer(initializerExpression);
 		FieldDeclaration fieldDeclaration = ast.newFieldDeclaration(declarationFragment);
-		fieldDeclaration.setType(fieldType);
+		fieldDeclaration.setType(parsingHelper.getUnqualifiedType(fieldType, ast));
 		listRewrite.insertFirst(fieldDeclaration, null);
 	}
 

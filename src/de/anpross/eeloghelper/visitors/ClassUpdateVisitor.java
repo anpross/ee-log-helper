@@ -118,7 +118,7 @@ public class ClassUpdateVisitor extends ASTVisitor {
 	public boolean visit(VariableDeclarationStatement node) {
 		if (!currMethodStack.isEmpty()) {
 			VariableDeclarationFragment firstStatement = StatementHelper.getFirstStatement(node);
-			if (firstStatement.getName().getIdentifier().equals(EeLogConstants.CONST_NAME_LOG_METHOD)) {
+			if (firstStatement.getName().getIdentifier().equals(EeLogConstants.getLogMethod())) {
 				System.out.println(node);
 				currMethodStack.peek().setLogStyle(LogStyleEnum.USE_VARIABLE);
 			}
