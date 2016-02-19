@@ -36,28 +36,28 @@ public class PreferencePage extends FieldEditorPreferencePage implements IWorkbe
 	protected void createFieldEditors() {
 		String[][] logStyleOptions = { { "method name as String literal", LogStyleEnum.USE_LITERAL.name() },
 				{ "method name as Constant", LogStyleEnum.USE_VARIABLE.name() } };
-		RadioGroupFieldEditor logStyle = new RadioGroupFieldEditor(PREF_LOG_STYLE, "select a log style to use:", 1, logStyleOptions,
-				getFieldEditorParent());
+		RadioGroupFieldEditor logStyle = new RadioGroupFieldEditor(PREF_LOG_STYLE, "select a log style to use:", 1,
+				logStyleOptions, getFieldEditorParent());
 		addField(logStyle);
 
-		StringFieldEditor logMethodVarName = new StringFieldEditor(PREF_LOG_METHOD_VAR_NAME, "variable to store log method", 20,
-				getFieldEditorParent());
+		StringFieldEditor logMethodVarName = new StringFieldEditor(PREF_LOG_METHOD_VAR_NAME,
+				"variable to store log method", getFieldEditorParent());
 		addField(logMethodVarName);
 
-		StringFieldEditor isLoggingVarName = new StringFieldEditor(PREF_IS_LOGGING_VAR_NAME, "variable to store if logging is enabled", 20,
-				getFieldEditorParent());
+		StringFieldEditor isLoggingVarName = new StringFieldEditor(PREF_IS_LOGGING_VAR_NAME,
+				"variable to store if logging is enabled", getFieldEditorParent());
 		addField(isLoggingVarName);
 
-		StringFieldEditor loggerConstName = new StringFieldEditor(PREF_LOGGER_VAR_NAME, "constant to store the Logger", 20,
+		StringFieldEditor loggerConstName = new StringFieldEditor(PREF_LOGGER_VAR_NAME, "constant to store the Logger",
 				getFieldEditorParent());
 		addField(loggerConstName);
 
-		StringFieldEditor defaultLevelConstName = new StringFieldEditor(PREF_DEFAULT_LEVEL_VAR_NAME, "variable to store default log level",
-				20, getFieldEditorParent());
+		StringFieldEditor defaultLevelConstName = new StringFieldEditor(PREF_DEFAULT_LEVEL_VAR_NAME,
+				"variable to store default log level", getFieldEditorParent());
 		addField(defaultLevelConstName);
 
-		StringFieldEditor logClassConstName = new StringFieldEditor(PREF_LOGGER_VAR_NAME, "constant to store the Logger ", 20,
-				getFieldEditorParent());
+		StringFieldEditor logClassConstName = new StringFieldEditor(PREF_LOGGER_VAR_NAME,
+				"constant to store the Logger ", getFieldEditorParent());
 		addField(logClassConstName);
 	}
 
