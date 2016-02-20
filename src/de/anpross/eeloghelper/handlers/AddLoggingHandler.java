@@ -200,7 +200,8 @@ public abstract class AddLoggingHandler extends AbstractHandler {
 					statements.add(isLoggingStmt);
 				}
 
-				StatementHelper.insertEntryLogStatement(ast, logStyle, currMethod, statements);
+				Expression callExpression = StatementHelper.generateCallExpression(currMethod.getMethodDeclaration().parameters(), ast);
+				StatementHelper.insertEntryLogStatement(ast, logStyle, currMethod, statements, callExpression);
 
 				StatementHelper.insertStatementsToListRewrite(listRewrite, statements);
 

@@ -97,9 +97,8 @@ public class StatementHelper {
 		return methodInvocation;
 	}
 
-	public static IfStatement createEntryLoggingStatement(AST ast, Expression methodNameExpression) {
-		List<Expression> arguments = createEntryLoggingArguments(ast, methodNameExpression);
-		MethodInvocation invocation = createEntryLoggingInvocation(ast, arguments);
+	public static IfStatement createEntryLoggingStatement(AST ast, Expression methodNameExpression, Expression callExpression) {
+		MethodInvocation invocation = createEntryLoggingInvocation(ast, callExpression, methodNameExpression);
 		ExpressionStatement expression = ast.newExpressionStatement(invocation);
 		return createIfLoggingStatement(ast, expression);
 	}
@@ -121,12 +120,6 @@ public class StatementHelper {
 		arguments.add(EeLogConstants.getLogClassName(ast));
 		arguments.add(methodName);
 		return arguments;
-	}
-
-	public static IfStatement createEntryLoggingIfStatement(AST ast, Expression returnExpression, Expression methodNameExpression) {
-		MethodInvocation invocation = createExitingLoggingInvocation(ast, returnExpression, methodNameExpression);
-		ExpressionStatement expression = ast.newExpressionStatement(invocation);
-		return createIfLoggingStatement(ast, expression);
 	}
 
 	public static IfStatement createExitingLoggingIfStatement(AST ast, Expression returnExpression, Expression methodNameExpression) {
@@ -348,9 +341,10 @@ public class StatementHelper {
 		}
 	}
 
-	public static void insertEntryLogStatement(AST ast, LogStyleEnum logStyle, MethodDto currMethod, List<Statement> statements) {
+	public static void insertEntryLogStatement(AST ast, LogStyleEnum logStyle, MethodDto currMethod, List<Statement> statements,
+			Expression callExpression) {
 		Expression methodNameExpression = getMethodNameExpression(ast, logStyle, currMethod);
-		IfStatement entryStmt = StatementHelper.createEntryLoggingStatement(ast, methodNameExpression);
+		IfStatement entryStmt = StatementHelper.createEntryLoggingStatement(ast, methodNameExpression, callExpression);
 		statements.add(entryStmt);
 	}
 

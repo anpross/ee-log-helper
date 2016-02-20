@@ -105,7 +105,7 @@ public class ClassUpdateVisitor extends ASTVisitor {
 		result.setSignature(methodFromStack.getSignature());
 		result.setCallParameters(methodFromStack.getCallParameters());
 		result.setReturnExpression(methodFromStack.getReturnExpression());
-		// result.setLogStyle(methodFromStack.getLogStyle());
+		result.setLogStyle(methodFromStack.getLogStyle());
 		methods.add(result);
 	}
 

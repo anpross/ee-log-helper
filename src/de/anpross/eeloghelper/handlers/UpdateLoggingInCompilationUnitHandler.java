@@ -92,9 +92,8 @@ public class UpdateLoggingInCompilationUnitHandler extends AbstractHandler {
 			LoggerMethodMacher.MethodMatcher methodMatcherIfMatching = loggerMatcher.getMethodMatcherIfMatching(methodInvocation);
 			AST ast = parsedCompilationUnit.getAST();
 			if (methodMatcherIfMatching != null) {
-				Expression callExpression = StatementHelper.generateCallExpression(methodMatcherIfMatching.getCallParameters(), ast);
-				fixLogMethodCalls(methodMatcherIfMatching, methodInvocation.getSignature(), methodInvocation.getLogStyle(), callExpression,
-						rewrite, ast);
+
+				fixLogMethodCalls(methodMatcherIfMatching, methodInvocation.getSignature(), methodInvocation.getLogStyle(), rewrite, ast);
 			}
 		}
 		Map<VariableDeclarationFragment, MethodDeclaration> logMethodMap = visitor.getLogMethodVariables();
@@ -112,8 +111,8 @@ public class UpdateLoggingInCompilationUnitHandler extends AbstractHandler {
 		}
 	}
 
-	private void fixLogMethodCalls(MethodMatcher methodMatcher, String methodSignature, LogStyleEnum logStyle, Expression callExpression,
-			ASTRewrite rewrite, AST ast) {
+	private void fixLogMethodCalls(MethodMatcher methodMatcher, String methodSignature, LogStyleEnum logStyle, ASTRewrite rewrite,
+			AST ast) {
 		System.out.println("fixing method: " + methodSignature + " with logstyle: " + logStyle);
 		MethodInvocation originalInvocation = methodMatcher.getInvocation();
 		MethodInvocation newInvocation = (MethodInvocation) ASTNode.copySubtree(ast, originalInvocation);
@@ -129,6 +128,7 @@ public class UpdateLoggingInCompilationUnitHandler extends AbstractHandler {
 		// entering
 		if (methodMatcher.getPotentialCallParameterPos() != null) {
 			// number of arguments might have changed, need a whole new method
+			Expression callExpression = StatementHelper.generateCallExpression(methodMatcher.getCallParameters(), ast);
 			newInvocation = StatementHelper.createEntryLoggingInvocation(ast, callExpression, methodNameExpression);
 		}
 
