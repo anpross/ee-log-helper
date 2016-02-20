@@ -34,16 +34,19 @@ public class LoggerMethodMacher {
 		private Integer classParameterPos;
 		private Integer methodParameterPos;
 		private Integer potentialReturnParameterPos;
+		private Integer potentialCallParameterPos;
 		private MethodInvocation invocation;
+		private List callParameters;
 		private Expression returnExpression;
 
 		public MethodMatcher(String methodName, List<String> arguments, Integer classParameterPos, Integer methodParameterPos,
-				Integer returnParameterPos) {
+				Integer potentialReturnParameterPos, Integer potentialCallParameterPos) {
 			this.methodName = methodName;
 			this.arguments = arguments;
 			this.classParameterPos = classParameterPos;
 			this.methodParameterPos = methodParameterPos;
-			this.setReturnParameterPos(returnParameterPos);
+			this.potentialReturnParameterPos = potentialReturnParameterPos;
+			this.potentialCallParameterPos = potentialCallParameterPos;
 		}
 
 		public boolean match(MethodInvocation invocation) {
@@ -105,6 +108,22 @@ public class LoggerMethodMacher {
 			this.returnExpression = returnExpression;
 		}
 
+		public Integer getPotentialCallParameterPos() {
+			return potentialCallParameterPos;
+		}
+
+		public void setPotentialCallParameterPos(Integer potentialCallParameterPos) {
+			this.potentialCallParameterPos = potentialCallParameterPos;
+		}
+
+		public List getCallParameters() {
+			return callParameters;
+		}
+
+		public void setCallParameters(List callParameters) {
+			this.callParameters = callParameters;
+		}
+
 	}
 
 	/**
@@ -112,32 +131,33 @@ public class LoggerMethodMacher {
 	 */
 	public LoggerMethodMacher() {
 		matchers = new ArrayList<MethodMatcher>();
-		matchers.add(new MethodMatcher(METHOD_ENTERING, Arrays.asList(TYPE_STRING, TYPE_STRING), 0, 1, null));
-		matchers.add(new MethodMatcher(METHOD_ENTERING, Arrays.asList(TYPE_STRING, TYPE_STRING, TYPE_OBJECT), 0, 1, null));
-		matchers.add(new MethodMatcher(METHOD_ENTERING, Arrays.asList(TYPE_STRING, TYPE_STRING, TYPE_OBJECT_ARRAY), 0, 1, null));
+		// those CAN have input/return parameters, if they do, it will on the given position
+		matchers.add(new MethodMatcher(METHOD_EXITING, Arrays.asList(TYPE_STRING, TYPE_STRING), 0, 1, 2, null));
+		matchers.add(new MethodMatcher(METHOD_ENTERING, Arrays.asList(TYPE_STRING, TYPE_STRING), 0, 1, null, 2));
 
-		// this one CAN have return parameter, if it does, it will on the given position
-		matchers.add(new MethodMatcher(METHOD_EXITING, Arrays.asList(TYPE_STRING, TYPE_STRING), 0, 1, 2));
-
-		matchers.add(new MethodMatcher(METHOD_EXITING, Arrays.asList(TYPE_STRING, TYPE_STRING, TYPE_OBJECT), 0, 1, 2));
-		matchers.add(new MethodMatcher(METHOD_LOGP, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING), 1, 2, null));
-		matchers.add(new MethodMatcher(METHOD_LOGP, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING, TYPE_OBJECT), 1, 2, null));
-		matchers.add(new MethodMatcher(METHOD_LOGP, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING, TYPE_OBJECT_ARRAY), 1, 2, null));
-		matchers.add(new MethodMatcher(METHOD_LOGP, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING, TYPE_THROWABLE), 1, 2, null));
-		matchers.add(new MethodMatcher(METHOD_LOGRB, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING, TYPE_STRING), 1, 2, null));
+		matchers.add(new MethodMatcher(METHOD_ENTERING, Arrays.asList(TYPE_STRING, TYPE_STRING, TYPE_OBJECT), 0, 1, null, 2));
+		matchers.add(new MethodMatcher(METHOD_ENTERING, Arrays.asList(TYPE_STRING, TYPE_STRING, TYPE_OBJECT_ARRAY), 0, 1, null, 2));
+		matchers.add(new MethodMatcher(METHOD_EXITING, Arrays.asList(TYPE_STRING, TYPE_STRING, TYPE_OBJECT), 0, 1, 2, null));
+		matchers.add(new MethodMatcher(METHOD_LOGP, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING), 1, 2, null, null));
+		matchers.add(new MethodMatcher(METHOD_LOGP, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING, TYPE_OBJECT), 1, 2, null, null));
 		matchers.add(
-				new MethodMatcher(METHOD_LOGRB, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING, TYPE_STRING, TYPE_OBJECT), 1, 2, null));
+				new MethodMatcher(METHOD_LOGP, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING, TYPE_OBJECT_ARRAY), 1, 2, null, null));
+		matchers.add(new MethodMatcher(METHOD_LOGP, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING, TYPE_THROWABLE), 1, 2, null, null));
+		matchers.add(new MethodMatcher(METHOD_LOGRB, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING, TYPE_STRING), 1, 2, null, null));
+		matchers.add(new MethodMatcher(METHOD_LOGRB, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING, TYPE_STRING, TYPE_OBJECT), 1, 2,
+				null, null));
 		matchers.add(new MethodMatcher(METHOD_LOGRB, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING, TYPE_STRING, TYPE_OBJECT_ARRAY), 1,
-				2, null));
+				2, null, null));
 		matchers.add(new MethodMatcher(METHOD_LOGRB, Arrays.asList(TYPE_LEVEL, TYPE_STRING, TYPE_STRING, TYPE_STRING, TYPE_THROWABLE), 1, 2,
-				null));
-		matchers.add(new MethodMatcher(METHOD_THROWING, Arrays.asList(TYPE_STRING, TYPE_STRING, TYPE_THROWABLE), 0, 1, null));
+				null, null));
+		matchers.add(new MethodMatcher(METHOD_THROWING, Arrays.asList(TYPE_STRING, TYPE_STRING, TYPE_THROWABLE), 0, 1, null, null));
 	}
 
 	public MethodMatcher getMethodMatcherIfMatching(ClassUpdateResultDto invocation) {
 		for (Iterator<MethodMatcher> iterator = matchers.iterator(); iterator.hasNext();) {
 			MethodMatcher methodMatcher = iterator.next();
 			if (methodMatcher.match(invocation.getInvocation())) {
+				methodMatcher.setCallParameters(invocation.getParameters());
 				methodMatcher.setReturnExpression(invocation.getReturnExpression());
 				invocation.setSignature(invocation.getSignature());
 				return methodMatcher;

@@ -32,6 +32,7 @@
 	</extension>
 	<extension point="org.eclipse.ui.menus">
 		<menuContribution locationURI="popup:org.eclipse.jdt.ui.source.menu?after=additions">
+			<separator name="separator-id" visible="true" />
 			<command commandId="EeLogHelper.commands.addLogStmtToMethodCommand" mnemonic="L" id="EeLogHelper.menus.addLogStmtToMethodCommand">
 				<visibleWhen>
 					<or>

@@ -1,5 +1,7 @@
 package de.anpross.eeloghelper.dtos;
 
+import java.util.List;
+
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 
@@ -8,6 +10,7 @@ import de.anpross.eeloghelper.enums.LogStyleEnum;
 public class ClassUpdateResultDto {
 	private MethodInvocation invocation;
 	private String signature;
+	private List callParameters;
 	private Expression returnExpression;
 	private LogStyleEnum logStyle;
 
@@ -25,6 +28,14 @@ public class ClassUpdateResultDto {
 
 	public void setSignature(String signature) {
 		this.signature = signature;
+	}
+
+	public List getParameters() {
+		return callParameters;
+	}
+
+	public void setCallParameters(List callParameters) {
+		this.callParameters = callParameters;
 	}
 
 	public Expression getReturnExpression() {
@@ -50,4 +61,5 @@ public class ClassUpdateResultDto {
 		sb.append(invocation).append("]");
 		return sb.toString();
 	}
+
 }

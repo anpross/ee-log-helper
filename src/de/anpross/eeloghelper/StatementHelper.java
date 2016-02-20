@@ -7,6 +7,8 @@ import java.util.logging.Level;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
+import org.eclipse.jdt.core.dom.ArrayCreation;
+import org.eclipse.jdt.core.dom.ArrayInitializer;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ExpressionStatement;
@@ -41,6 +43,7 @@ public class StatementHelper {
 	private static final String CLASS_NAME_LOGGER = "Logger";
 	private static final String CLASS_NAME_STRING = "String";
 	private static final String METHOD_NAME_ISLOGGABLE = "isLoggable";
+	private static final String CLASS_NAME_OBJECT = null;
 
 	public static VariableDeclarationStatement createMethodNameStatement(MethodDto method, AST ast) {
 		VariableDeclarationFragment newDeclarationFragment = ast.newVariableDeclarationFragment();
@@ -96,12 +99,29 @@ public class StatementHelper {
 	}
 
 	public static IfStatement createEntryLoggingStatement(AST ast) {
-		List<Expression> arguments = new ArrayList<Expression>();
-		arguments.add(ast.newSimpleName(CONST_NAME_LOG_CLASS));
-		arguments.add(ast.newSimpleName(CONST_NAME_LOG_METHOD));
-		MethodInvocation invocation = createEntryExitLoggingStatement(ast, EntryExitEnum.ENTRY, arguments);
+		List<Expression> arguments = createEntryLoggingArguments(ast, ast.newSimpleName(CONST_NAME_LOG_METHOD));
+		MethodInvocation invocation = createEntryLoggingInvocation(ast, arguments);
 		ExpressionStatement expression = ast.newExpressionStatement(invocation);
 		return createIfLoggingStatement(ast, expression);
+	}
+
+	public static MethodInvocation createEntryLoggingInvocation(AST ast, Expression callExpression, Expression methodNameExpression) {
+		List<Expression> arguments = createEntryLoggingArguments(ast, methodNameExpression);
+		arguments.add(callExpression);
+		MethodInvocation invocation = createEntryLoggingInvocation(ast, arguments);
+		return invocation;
+	}
+
+	public static MethodInvocation createEntryLoggingInvocation(AST ast, List<Expression> arguments) {
+		MethodInvocation invocation = createEntryExitLoggingStatement(ast, EntryExitEnum.ENTRY, arguments);
+		return invocation;
+	}
+
+	private static List<Expression> createEntryLoggingArguments(AST ast, Expression methodName) {
+		List<Expression> arguments = new ArrayList<Expression>();
+		arguments.add(ast.newSimpleName(CONST_NAME_LOG_CLASS));
+		arguments.add(methodName);
+		return arguments;
 	}
 
 	public static IfStatement createEntryLoggingIfStatement(AST ast, Expression returnExpression) {
@@ -143,9 +163,11 @@ public class StatementHelper {
 
 		List<Expression> invocationArguments = invocation.arguments();
 		for (Expression currArg : arguments) {
-			// need to copy the node as one node can not have 2 parents
-			Expression newNode = (Expression) ASTNode.copySubtree(ast, currArg);
-			invocationArguments.add(newNode);
+			if (currArg != null) {
+				// need to copy the node as one node can not have 2 parents
+				Expression newNode = (Expression) ASTNode.copySubtree(ast, currArg);
+				invocationArguments.add(newNode);
+			}
 		}
 
 		return invocation;
@@ -276,4 +298,31 @@ public class StatementHelper {
 		signature.append(')');
 		return signature.toString();
 	}
+
+	public static Expression generateCallExpression(List parameters, AST ast) {
+		ArrayList<SimpleName> parsedParameters = new ArrayList<>();
+		if (parameters != null) {
+			for (Object currParameter : parameters) {
+				if (currParameter instanceof SingleVariableDeclaration) {
+					SingleVariableDeclaration currVar = (SingleVariableDeclaration) currParameter;
+					parsedParameters.add(currVar.getName());
+				}
+			}
+			if (parsedParameters.size() == 1) {
+				return parsedParameters.get(0);
+			} else if (parsedParameters.size() > 1) {
+				ArrayCreation arrayCreation = ast.newArrayCreation();
+				arrayCreation.setType(ast.newArrayType(ast.newSimpleType(ast.newSimpleName("Object"))));
+				ArrayInitializer initializer = ast.newArrayInitializer();
+				arrayCreation.setInitializer(initializer);
+				List expressions = initializer.expressions();
+				for (SimpleName currParameter : parsedParameters) {
+					expressions.add(ast.newSimpleName(currParameter.getIdentifier()));
+				}
+				return arrayCreation;
+			}
+		}
+		return null;
+	}
+
 }

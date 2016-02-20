@@ -35,6 +35,7 @@ public class ClassUpdateVisitor extends ASTVisitor {
 
 	private class MethodStackDto {
 		private String signature;
+		private List callParameters;
 		private Expression returnExpression;
 		private List<MethodInvocation> invocationsOfCurrMethod;
 		private LogStyleEnum logStyle;
@@ -50,6 +51,14 @@ public class ClassUpdateVisitor extends ASTVisitor {
 
 		public void setSignature(String signature) {
 			this.signature = signature;
+		}
+
+		public List getCallParameters() {
+			return callParameters;
+		}
+
+		public void setCallParameters(List callParameters) {
+			this.callParameters = callParameters;
 		}
 
 		public Expression getReturnExpression() {
@@ -71,7 +80,6 @@ public class ClassUpdateVisitor extends ASTVisitor {
 		public void setLogStyle(LogStyleEnum logStyle) {
 			this.logStyle = logStyle;
 		}
-
 	}
 
 	public ClassUpdateVisitor(String fieldName) {
@@ -84,6 +92,7 @@ public class ClassUpdateVisitor extends ASTVisitor {
 	public boolean visit(MethodDeclaration node) {
 		MethodStackDto method = new MethodStackDto();
 		method.setSignature(StatementHelper.generateSignatureString(node));
+		method.setCallParameters(node.parameters());
 		currMethodStack.push(method);
 		return super.visit(node);
 	}
@@ -137,6 +146,7 @@ public class ClassUpdateVisitor extends ASTVisitor {
 		ClassUpdateResultDto result = new ClassUpdateResultDto();
 		result.setInvocation(invocation);
 		result.setSignature(methodFromStack.getSignature());
+		result.setCallParameters(methodFromStack.getCallParameters());
 		result.setReturnExpression(methodFromStack.getReturnExpression());
 		result.setLogStyle(methodFromStack.getLogStyle());
 		methods.add(result);

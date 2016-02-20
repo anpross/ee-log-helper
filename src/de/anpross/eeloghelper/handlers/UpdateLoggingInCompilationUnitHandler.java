@@ -87,14 +87,17 @@ public class UpdateLoggingInCompilationUnitHandler extends AbstractHandler {
 		System.out.println(methods);
 		for (ClassUpdateResultDto methodInvocation : methods) {
 			LoggerMethodMacher.MethodMatcher methodMatcherIfMatching = loggerMatcher.getMethodMatcherIfMatching(methodInvocation);
+			AST ast = parsedCompilationUnit.getAST();
 			if (methodMatcherIfMatching != null) {
-				fixLogMethod(methodMatcherIfMatching, methodInvocation.getSignature(), methodInvocation.getLogStyle(), rewrite,
-						parsedCompilationUnit.getAST());
+				Expression callExpression = StatementHelper.generateCallExpression(methodMatcherIfMatching.getCallParameters(), ast);
+				fixLogMethod(methodMatcherIfMatching, methodInvocation.getSignature(), methodInvocation.getLogStyle(), callExpression,
+						rewrite, ast);
 			}
 		}
 	}
 
-	private void fixLogMethod(MethodMatcher methodMatcher, String methodSignature, LogStyleEnum logStyle, ASTRewrite rewrite, AST ast) {
+	private void fixLogMethod(MethodMatcher methodMatcher, String methodSignature, LogStyleEnum logStyle, Expression callExpression,
+			ASTRewrite rewrite, AST ast) {
 		System.out.println("fixing method: " + methodSignature + " with logstyle: " + logStyle);
 		MethodInvocation originalInvocation = methodMatcher.getInvocation();
 		MethodInvocation newInvocation = (MethodInvocation) ASTNode.copySubtree(ast, originalInvocation);
@@ -106,6 +109,12 @@ public class UpdateLoggingInCompilationUnitHandler extends AbstractHandler {
 		// method
 		Expression methodNameExpression = getMethodExpression(methodSignature, logStyle, ast);
 		replaceArgument(newInvocation, methodMatcher.getMethodParameterPos(), methodNameExpression);
+
+		// entering
+		if (methodMatcher.getPotentialCallParameterPos() != null) {
+			// number of arguments might have changed, need a whole new method
+			newInvocation = StatementHelper.createEntryLoggingInvocation(ast, callExpression, methodNameExpression);
+		}
 
 		// return
 		if (methodMatcher.getPotentialReturnParameterPos() != null) {
