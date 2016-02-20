@@ -7,7 +7,7 @@ import org.eclipse.jdt.core.dom.MethodInvocation;
 
 import de.anpross.eeloghelper.enums.LogStyleEnum;
 
-public class ClassUpdateResultDto {
+public class LogMethodCallUpdateDto {
 	private MethodInvocation invocation;
 	private String signature;
 	private List callParameters;

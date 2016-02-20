@@ -1,6 +1,8 @@
 package de.anpross.eeloghelper.handlers;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.inject.Inject;
 
@@ -15,9 +17,11 @@ import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.Expression;
+import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.StringLiteral;
+import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
 import org.eclipse.jface.text.Document;
 import org.eclipse.text.edits.TextEdit;
@@ -28,7 +32,7 @@ import de.anpross.eeloghelper.LoggerMethodMacher;
 import de.anpross.eeloghelper.LoggerMethodMacher.MethodMatcher;
 import de.anpross.eeloghelper.ParsingHelper;
 import de.anpross.eeloghelper.StatementHelper;
-import de.anpross.eeloghelper.dtos.ClassUpdateResultDto;
+import de.anpross.eeloghelper.dtos.LogMethodCallUpdateDto;
 import de.anpross.eeloghelper.enums.LogStyleEnum;
 import de.anpross.eeloghelper.visitors.ClassUpdateVisitor;
 
@@ -82,20 +86,33 @@ public class UpdateLoggingInCompilationUnitHandler extends AbstractHandler {
 		ClassUpdateVisitor visitor = new ClassUpdateVisitor(EeLogConstants.getLogger());
 		parsedCompilationUnit.accept(visitor);
 
-		List<ClassUpdateResultDto> methods = visitor.getMethods();
+		List<LogMethodCallUpdateDto> methods = visitor.getMethods();
 		System.out.println(methods);
-		for (ClassUpdateResultDto methodInvocation : methods) {
+		for (LogMethodCallUpdateDto methodInvocation : methods) {
 			LoggerMethodMacher.MethodMatcher methodMatcherIfMatching = loggerMatcher.getMethodMatcherIfMatching(methodInvocation);
 			AST ast = parsedCompilationUnit.getAST();
 			if (methodMatcherIfMatching != null) {
 				Expression callExpression = StatementHelper.generateCallExpression(methodMatcherIfMatching.getCallParameters(), ast);
-				fixLogMethod(methodMatcherIfMatching, methodInvocation.getSignature(), methodInvocation.getLogStyle(), callExpression,
+				fixLogMethodCalls(methodMatcherIfMatching, methodInvocation.getSignature(), methodInvocation.getLogStyle(), callExpression,
 						rewrite, ast);
+			}
+		}
+		Map<VariableDeclarationFragment, MethodDeclaration> logMethodMap = visitor.getLogMethodVariables();
+		fixLogMethodVariables(rewrite, logMethodMap);
+	}
+
+	private void fixLogMethodVariables(ASTRewrite rewrite, Map<VariableDeclarationFragment, MethodDeclaration> logMethodMap) {
+		Set<VariableDeclarationFragment> logMethodVariables = logMethodMap.keySet();
+		if (!logMethodVariables.isEmpty()) {
+			for (VariableDeclarationFragment fragment : logMethodVariables) {
+				VariableDeclarationFragment replacement = StatementHelper.createMethodNameFragment(logMethodMap.get(fragment),
+						rewrite.getAST());
+				rewrite.replace(fragment, replacement, null);
 			}
 		}
 	}
 
-	private void fixLogMethod(MethodMatcher methodMatcher, String methodSignature, LogStyleEnum logStyle, Expression callExpression,
+	private void fixLogMethodCalls(MethodMatcher methodMatcher, String methodSignature, LogStyleEnum logStyle, Expression callExpression,
 			ASTRewrite rewrite, AST ast) {
 		System.out.println("fixing method: " + methodSignature + " with logstyle: " + logStyle);
 		MethodInvocation originalInvocation = methodMatcher.getInvocation();

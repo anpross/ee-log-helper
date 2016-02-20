@@ -1,7 +1,9 @@
 package de.anpross.eeloghelper.visitors;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Stack;
 
 import org.eclipse.jdt.core.dom.ASTVisitor;
@@ -15,8 +17,8 @@ import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 
 import de.anpross.eeloghelper.EeLogConstants;
 import de.anpross.eeloghelper.StatementHelper;
-import de.anpross.eeloghelper.dtos.ClassUpdateResultDto;
-import de.anpross.eeloghelper.enums.LogStyleEnum;
+import de.anpross.eeloghelper.dtos.LogMethodCallUpdateDto;
+import de.anpross.eeloghelper.dtos.MethodStackDto;
 
 /**
  * collects all method invocations to a specific Field. (the LOGGER)
@@ -27,64 +29,16 @@ import de.anpross.eeloghelper.enums.LogStyleEnum;
 public class ClassUpdateVisitor extends ASTVisitor {
 
 	private String fieldName;
-	private List<ClassUpdateResultDto> methods;
+	private List<LogMethodCallUpdateDto> methods;
+	private Map<VariableDeclarationFragment, MethodDeclaration> logMethodVariableMap = new LinkedHashMap<VariableDeclarationFragment, MethodDeclaration>();
 
 	// because of anonymous inner classes, we can have a stack of methods
 	// need to keep track of them because of return statements
 	private Stack<MethodStackDto> currMethodStack;
 
-	private class MethodStackDto {
-		private String signature;
-		private List callParameters;
-		private Expression returnExpression;
-		private List<MethodInvocation> invocationsOfCurrMethod;
-		private LogStyleEnum logStyle;
-
-		public MethodStackDto() {
-			invocationsOfCurrMethod = new ArrayList<MethodInvocation>();
-			logStyle = LogStyleEnum.USE_LITERAL;
-		}
-
-		public String getSignature() {
-			return signature;
-		}
-
-		public void setSignature(String signature) {
-			this.signature = signature;
-		}
-
-		public List getCallParameters() {
-			return callParameters;
-		}
-
-		public void setCallParameters(List callParameters) {
-			this.callParameters = callParameters;
-		}
-
-		public Expression getReturnExpression() {
-			return returnExpression;
-		}
-
-		public void setReturnExpression(Expression returnExpression) {
-			this.returnExpression = returnExpression;
-		}
-
-		public List<MethodInvocation> getInvocationsOfCurrMethod() {
-			return invocationsOfCurrMethod;
-		}
-
-		public LogStyleEnum getLogStyle() {
-			return logStyle;
-		}
-
-		public void setLogStyle(LogStyleEnum logStyle) {
-			this.logStyle = logStyle;
-		}
-	}
-
 	public ClassUpdateVisitor(String fieldName) {
 		this.fieldName = fieldName;
-		methods = new ArrayList<ClassUpdateResultDto>();
+		methods = new ArrayList<LogMethodCallUpdateDto>();
 		currMethodStack = new Stack<MethodStackDto>();
 	}
 
@@ -93,6 +47,7 @@ public class ClassUpdateVisitor extends ASTVisitor {
 		MethodStackDto method = new MethodStackDto();
 		method.setSignature(StatementHelper.generateSignatureString(node));
 		method.setCallParameters(node.parameters());
+		method.setMethodDeclaration(node);
 		currMethodStack.push(method);
 		return super.visit(node);
 	}
@@ -119,11 +74,10 @@ public class ClassUpdateVisitor extends ASTVisitor {
 		if (!currMethodStack.isEmpty()) {
 			VariableDeclarationFragment firstStatement = StatementHelper.getFirstStatement(node);
 			if (firstStatement.getName().getIdentifier().equals(EeLogConstants.getLogMethod())) {
-				System.out.println(node);
-				currMethodStack.peek().setLogStyle(LogStyleEnum.USE_VARIABLE);
+				// currMethodStack.peek().setLogStyle(LogStyleEnum.USE_VARIABLE);
+				currMethodStack.peek().setLogMethodVariable(firstStatement);
 			}
 		}
-		// TODO Auto-generated method stub
 		return super.visit(node);
 	}
 
@@ -132,6 +86,9 @@ public class ClassUpdateVisitor extends ASTVisitor {
 		MethodStackDto currMethod = currMethodStack.pop();
 		for (MethodInvocation methodInvocation : currMethod.getInvocationsOfCurrMethod()) {
 			addMethod(methodInvocation, currMethod);
+		}
+		if (currMethod.getLogMethodVariable() != null) {
+			logMethodVariableMap.put(currMethod.getLogMethodVariable(), currMethod.getMethodDeclaration());
 		}
 		super.endVisit(node);
 	}
@@ -143,16 +100,20 @@ public class ClassUpdateVisitor extends ASTVisitor {
 	}
 
 	private void addMethod(MethodInvocation invocation, MethodStackDto methodFromStack) {
-		ClassUpdateResultDto result = new ClassUpdateResultDto();
+		LogMethodCallUpdateDto result = new LogMethodCallUpdateDto();
 		result.setInvocation(invocation);
 		result.setSignature(methodFromStack.getSignature());
 		result.setCallParameters(methodFromStack.getCallParameters());
 		result.setReturnExpression(methodFromStack.getReturnExpression());
-		result.setLogStyle(methodFromStack.getLogStyle());
+		// result.setLogStyle(methodFromStack.getLogStyle());
 		methods.add(result);
 	}
 
-	public List<ClassUpdateResultDto> getMethods() {
+	public List<LogMethodCallUpdateDto> getMethods() {
 		return methods;
+	}
+
+	public Map<VariableDeclarationFragment, MethodDeclaration> getLogMethodVariables() {
+		return logMethodVariableMap;
 	}
 }

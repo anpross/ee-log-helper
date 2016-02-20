@@ -9,7 +9,7 @@ import java.util.logging.Level;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 
-import de.anpross.eeloghelper.dtos.ClassUpdateResultDto;
+import de.anpross.eeloghelper.dtos.LogMethodCallUpdateDto;
 
 public class LoggerMethodMacher {
 
@@ -162,7 +162,7 @@ public class LoggerMethodMacher {
 		matchers.add(new MethodMatcher(METHOD_THROWING, Arrays.asList(TYPE_STRING, TYPE_STRING, TYPE_THROWABLE), 0, 1, null, null));
 	}
 
-	public MethodMatcher getMethodMatcherIfMatching(ClassUpdateResultDto invocation) {
+	public MethodMatcher getMethodMatcherIfMatching(LogMethodCallUpdateDto invocation) {
 		for (Iterator<MethodMatcher> iterator = matchers.iterator(); iterator.hasNext();) {
 			MethodMatcher methodMatcher = iterator.next();
 			if (methodMatcher.match(invocation.getInvocation())) {

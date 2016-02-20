@@ -38,10 +38,7 @@ import de.anpross.eeloghelper.enums.LogStyleEnum;
 @SuppressWarnings("unchecked")
 public class StatementHelper {
 	public static VariableDeclarationStatement createMethodNameStatement(MethodDto method, AST ast) {
-		VariableDeclarationFragment newDeclarationFragment = ast.newVariableDeclarationFragment();
-		newDeclarationFragment.setName(EeLogConstants.getLogMethodName(ast));
-
-		newDeclarationFragment.setInitializer(getStringLiteral(method.getSignatureString(), ast));
+		VariableDeclarationFragment newDeclarationFragment = createMethodNameFragment(method.getSignatureString(), ast);
 
 		VariableDeclarationStatement newDeclaration = ast.newVariableDeclarationStatement(newDeclarationFragment);
 
@@ -49,6 +46,18 @@ public class StatementHelper {
 		newDeclaration.setType(ast.newSimpleType(ast.newSimpleName(EeLogConstants.CLASS_NAME_STRING)));
 
 		return newDeclaration;
+	}
+
+	public static VariableDeclarationFragment createMethodNameFragment(MethodDeclaration declaration, AST ast) {
+		return createMethodNameFragment(generateSignatureString(declaration), ast);
+	}
+
+	private static VariableDeclarationFragment createMethodNameFragment(String signatureString, AST ast) {
+		VariableDeclarationFragment newDeclarationFragment = ast.newVariableDeclarationFragment();
+		newDeclarationFragment.setName(EeLogConstants.getLogMethodName(ast));
+
+		newDeclarationFragment.setInitializer(getStringLiteral(signatureString, ast));
+		return newDeclarationFragment;
 	}
 
 	private static Modifier createFinalModifier(AST ast) {
@@ -179,7 +188,7 @@ public class StatementHelper {
 		if (stmt.getNodeType() == ASTNode.VARIABLE_DECLARATION_STATEMENT) {
 			VariableDeclarationStatement varDeclStatement = (VariableDeclarationStatement) stmt;
 			Type type = varDeclStatement.getType();
-			if (type.resolveBinding().getQualifiedName().equals("java.lang.String")
+			if (type.resolveBinding().getQualifiedName().equals(String.class.getCanonicalName())
 					&& StatementHelper.hasFinalModifier(varDeclStatement.modifiers())
 					&& StatementHelper.getVariableName(varDeclStatement).equals(EeLogConstants.getLogMethod())) {
 				return true;
