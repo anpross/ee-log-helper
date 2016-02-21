@@ -18,6 +18,8 @@ import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.Modifier;
+import org.eclipse.jdt.core.dom.Modifier.ModifierKeyword;
+import org.eclipse.jdt.core.dom.Name;
 import org.eclipse.jdt.core.dom.PrimitiveType;
 import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.ReturnStatement;
@@ -168,6 +170,20 @@ public class StatementHelper {
 		thenBlock.statements().add(thenStatement);
 		statement.setThenStatement(thenBlock);
 		return statement;
+	}
+
+	public static FieldDeclaration createPrivateStaticField(Type fieldType, Name fieldName, Expression initializerExpression, AST ast) {
+		ParsingHelper parsingHelper = new ParsingHelper();
+		VariableDeclarationFragment declarationFragment = ast.newVariableDeclarationFragment();
+		declarationFragment.setName(parsingHelper.getSimpleName(fieldName));
+		declarationFragment.setInitializer(initializerExpression);
+		FieldDeclaration fieldDeclaration = ast.newFieldDeclaration(declarationFragment);
+		List<IExtendedModifier> modifiers = fieldDeclaration.modifiers();
+		modifiers.add(ast.newModifier(ModifierKeyword.PRIVATE_KEYWORD));
+		modifiers.add(ast.newModifier(ModifierKeyword.STATIC_KEYWORD));
+		modifiers.add(ast.newModifier(ModifierKeyword.FINAL_KEYWORD));
+		fieldDeclaration.setType(parsingHelper.getUnqualifiedType(fieldType, ast));
+		return fieldDeclaration;
 	}
 
 	/**

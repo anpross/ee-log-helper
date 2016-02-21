@@ -170,11 +170,7 @@ public abstract class AddLoggingHandler extends AbstractHandler {
 		System.out.println("need to add a " + fieldType + " called " + fieldName + " of " + initializerExpression);
 		ListRewrite listRewrite = rewriter.getListRewrite(currClass, TypeDeclaration.BODY_DECLARATIONS_PROPERTY);
 
-		VariableDeclarationFragment declarationFragment = ast.newVariableDeclarationFragment();
-		declarationFragment.setName(parsingHelper.getSimpleName(fieldName));
-		declarationFragment.setInitializer(initializerExpression);
-		FieldDeclaration fieldDeclaration = ast.newFieldDeclaration(declarationFragment);
-		fieldDeclaration.setType(parsingHelper.getUnqualifiedType(fieldType, ast));
+		FieldDeclaration fieldDeclaration = StatementHelper.createPrivateStaticField(fieldType, fieldName, initializerExpression, ast);
 		listRewrite.insertFirst(fieldDeclaration, null);
 	}
 
