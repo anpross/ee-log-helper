@@ -77,7 +77,7 @@ public class ParsingHelper {
 
 	public ITextSelection getAndStoreCurrentSelection(ITextEditor editor) {
 		ITextSelection sel = (ITextSelection) editor.getSelectionProvider().getSelection();
-		editorPosition.getInstance().setCurrSelection(sel);
+		editorPosition.setCurrSelection(sel);
 		return sel;
 	}
 
@@ -219,7 +219,7 @@ public class ParsingHelper {
 	}
 
 	public void moveToStoredEditorPos(ITextEditor currEditor) {
-		currEditor.getSelectionProvider().setSelection(editorPosition.getInstance().getCurrSelection());
+		currEditor.getSelectionProvider().setSelection(editorPosition.getCurrSelection());
 	}
 
 	public String getIdentifier(Name name) {

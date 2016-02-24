@@ -32,6 +32,7 @@ import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.Document;
 import org.eclipse.text.edits.MalformedTreeException;
 import org.eclipse.text.edits.TextEdit;
+import org.eclipse.ui.texteditor.ITextEditor;
 
 import de.anpross.eeloghelper.Activator;
 import de.anpross.eeloghelper.EditorPositionBean;
@@ -66,6 +67,9 @@ public abstract class AddLoggingHandler extends AbstractHandler {
 
 	protected void processCompilationUnit(ICompilationUnit unit, IMethod currMethod)
 			throws JavaModelException, MalformedTreeException, BadLocationException {
+		ITextEditor currEditor = parsingHelper.getCurrEditor();
+		parsingHelper.getAndStoreCurrentSelection(currEditor);
+
 		String[] compilationUnitSource = unit.getSource().split("\n");
 		CompilationUnit parsedCompilationUnit = parsingHelper.parse(unit);
 		List<AbstractTypeDeclaration> classes = parsedCompilationUnit.types();
@@ -79,6 +83,7 @@ public abstract class AddLoggingHandler extends AbstractHandler {
 		edits.apply(document);
 
 		unit.getBuffer().setContents(document.get());
+		parsingHelper.moveToStoredEditorPos(currEditor);
 	}
 
 	private void processClass(ASTRewrite rewrite, AbstractTypeDeclaration currClass, CompilationUnit parsedCompilationUnit,
